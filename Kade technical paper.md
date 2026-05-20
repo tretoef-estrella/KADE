@@ -132,18 +132,19 @@ The toolkit was applied to the seven Game of Sloanes cells listed in Table 1. Th
 | (4, 64) | 4 | 64 | 16.00 | 4.00  | Cohn (hlc)¹      | 0.68716020150931    |
 | (7, 26) | 7 | 26 | 3.71  | 0.53  | Cohn (hlc)       | 0.33301             |
 
-<sub>¹ Pull requests proposing improved-coherence packings in cells (3, 14), (4, 48), and (4, 64) are open at github.com/gnikylime/GameofSloanes at the time of writing, pending review by the leaderboard curators. The proposed values are 0.63763051494186 for (3, 14), 0.64342550476006 for (4, 48), and 0.68703393121409 for (4, 64). The diagnostic toolkit in this paper was applied to those proposed packings as well as to the standing holders; results for both are reported in §3 and in the companion repository.</sub>
+<sub>¹ Pull requests proposing improved-coherence packings in cells (3, 14), (4, 48), and (4, 64) are open at github.com/gnikylime/GameofSloanes at the time of writing, pending review by the leaderboard curators. The proposed values are 0.637630514941861 for (3, 14), 0.643425504750473 for (4, 48), and 0.687033931214091 for (4, 64). The diagnostic toolkit in this paper was applied to those proposed packings as well as to the standing holders; results for both are reported in §3 and in the companion repository.</sub>
 
 ### 3.2 The cross-cell diagnostic table
 
 Table 2 reports the toolkit invariants for the four primary cells of the study. The remaining three cells are summarised in §3.4.
 
-**Table 2. Cross-cell diagnostic fingerprint (four primary cells).** The Holder row lists the standing leaderboard holder for each cell at the time of writing; column (3, 15) is the Jasper–Joseph structurally constructed reference. The numerical invariants below are computed on the proposed candidate packings under PR review for (3, 14), (4, 48), and (4, 64), and on the standing JJ packing for (3, 15).
+**Table 2. Cross-cell diagnostic fingerprint (four primary cells).** The Holder row lists the standing leaderboard holder for each cell; the µ row immediately below it is that holder's coherence value. The RAL (PR pending) row lists the coherence values proposed in the open pull requests at the time of writing — only for the three cells where a PR has been submitted; cell (3, 15) JJ is not contested. The remaining diagnostic invariants below are computed on the proposed candidate packings for (3, 14), (4, 48), and (4, 64), and on the standing JJ packing for (3, 15).
 
 | Quantity                                | (3, 14)              | (3, 15)                | (4, 48)             | (4, 64)               |
 |-----------------------------------------|----------------------|------------------------|---------------------|------------------------|
 | Holder                                  | Mixon 2019 (dgm)     | Jasper–Joseph (JJ)     | Cohn (hlc)          | Cohn (hlc)             |
-| µ                                       | 0.637630514941       | 0.640388203202         | 0.643425504760      | 0.687033931214         |
+| µ (holder)                              | 0.637630521755923    | 0.640388203202208      | 0.643427715576853   | 0.687160201509307      |
+| µ (RAL, PR pending)                     | 0.637630514941861    | —                      | 0.643425504750473   | 0.687033931214091      |
 | µ / Welch                               | 1.2006               | 1.1981                 | 1.3300              | 1.4080                 |
 | Saturated fraction at 10⁻⁸              | 53.85%               | 62.86%                 | 24.29%              | 17.16%                 |
 | K₃ cliques in G_sat                     | 45                   | 96                     | 189                 | 214                    |
@@ -159,7 +160,7 @@ Table 2 reports the toolkit invariants for the four primary cells of the study. 
 | Hinge rule, top-1 hub                   | 100%                 | 40%                    | 50%                 | 29%                    |
 | Hub overrepresentation (top-1 freq)     | 1.67×                | 1.67×                  | 3.33×               | 2.33×                  |
 
-<sub>**Note (as of 2026-05-20).** The pull requests proposing improved-coherence candidate packings for cells (3, 14), (4, 48), and (4, 64) have been submitted to the Game of Sloanes leaderboard at github.com/gnikylime/GameofSloanes but have not yet been merged. The current holders on the leaderboard remain Mixon 2019 (dgm) for cell (3, 14) and Cohn (hlc) for cells (4, 48) and (4, 64). The diagnostic fingerprint above is computed on the proposed candidate packings, since they sit at or near the local numerical limit and therefore offer the cleanest test of the toolkit's discrimination power; the toolkit produces a parallel fingerprint on the standing holders, available in the companion repository.</sub>
+<sub>**Note (as of 2026-05-20).** The pull requests proposing improved-coherence candidate packings for cells (3, 14), (4, 48), and (4, 64) have been submitted to the Game of Sloanes leaderboard at github.com/gnikylime/GameofSloanes but have not yet been merged. The candidate coherence values requested for ratification are 0.637630514941861 for cell (3, 14) dgm (improving the Mixon 2019 holder by 6.81 × 10⁻⁹), 0.643425504750473 for cell (4, 48) hlc (improving the Cohn holder by 2.21 × 10⁻⁶), and 0.687033931214091 for cell (4, 64) hlc (improving the Cohn holder by 1.263 × 10⁻⁴, the deepest of four candidate sub-Cohn packings in that cell). Cell (3, 15) JJ is not contested. Until the leaderboard curators review and merge the pull requests, the current holders remain Mixon 2019 (dgm) for cell (3, 14) and Cohn (hlc) for cells (4, 48) and (4, 64). The diagnostic fingerprint above is computed on the proposed candidate packings, since they sit at or near the local numerical limit and therefore offer the cleanest test of the toolkit's discrimination power; the toolkit produces a parallel fingerprint on the standing holders, available in the companion repository.</sub>
 
 ### 3.3 Three structural classes
 
