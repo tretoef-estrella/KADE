@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KADE Packing Diagnostic · v5</title>
+<title>KADE Packing Diagnostic · v6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -660,11 +660,11 @@
 <!-- ──── HEADER ──── -->
 <header>
   <div class="title-block">
-    <div class="meta">Grassmannian Frame Diagnostic · v5</div>
+    <div class="meta">Grassmannian Frame Diagnostic · v6</div>
     <h1>KADE <span class="italic">Packing Diagnostic</span></h1>
   </div>
   <div class="header-right">
-    <div>FLOAT64 · LOCAL · NO SERVER</div>
+    <div>FLOAT64 · LOCAL · NO SERVER · <a href="https://github.com/tretoef-estrella/KADE" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none; font-weight: 500;">SOURCE ↗</a></div>
     <div class="actions">
       <button class="btn" onclick="window.print()">Print</button>
       <button class="btn" onclick="shareTool()">Share</button>
@@ -1116,12 +1116,27 @@ Filename hint: if your file is named like '3x14_xxx.txt', the (d,n) values are a
       packing files from the Game of Sloanes repository.
     </p>
 
+    <h2>Source code &amp; repository</h2>
+    <p>
+      Public repository (source code, license, citation, issue tracker):
+      <a href="https://github.com/tretoef-estrella/KADE" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 500;">github.com/tretoef-estrella/KADE</a>.
+    </p>
+    <p>
+      Bug reports, feature requests, and pull requests are welcome via the
+      repository's issue tracker. The tool is licensed under
+      <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" style="color: var(--accent);">CC BY-NC 4.0</a>
+      (free for academic and personal use; commercial use requires permission —
+      contact <span class="mono">tretoef@gmail.com</span>).
+      Citation formats (BibTeX, APA, MLA, Chicago, IEEE, CFF) are in
+      <span class="mono">CITATION.md</span> in the repository.
+    </p>
+
   </div>
 </div>
 
 <!-- ──── FOOTER ──── -->
 <footer>
-  <div>KADE PACKING DIAGNOSTIC · v5 · IEEE 754 FLOAT64</div>
+  <div>KADE PACKING DIAGNOSTIC · v6 · IEEE 754 FLOAT64 · <a href="https://github.com/tretoef-estrella/KADE" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">github.com/tretoef-estrella/KADE ↗</a></div>
   <div class="author">Rafael Amichis Luengo (RAL)</div>
 </footer>
 
@@ -2197,7 +2212,7 @@ function resetAll() {
 function shareTool() {
   const url = window.location.href;
   if (navigator.share) {
-    navigator.share({ title: 'KADE Packing Diagnostic v5', url }).catch(() => {});
+    navigator.share({ title: 'KADE Packing Diagnostic v6', url }).catch(() => {});
   } else if (navigator.clipboard) {
     navigator.clipboard.writeText(url).then(
       () => setStatus('URL copied to clipboard', 'ok'),
@@ -2210,7 +2225,7 @@ function exportReport() {
   if (!lastResult) { setStatus('No analysis to export yet. Click Analyze first.', 'error'); return; }
   const r = lastResult;
   const report = {
-    tool: 'KADE Packing Diagnostic v5',
+    tool: 'KADE Packing Diagnostic v6',
     timestamp: new Date().toISOString(),
     packing_sha256: r._hash,
     d: r.d, n: r.n, nPairs: r.nPairs,
@@ -2332,7 +2347,7 @@ function buildResultsText() {
   lines.push(`  Game of Sloanes record submissions. Quad-precision verification`);
   lines.push(`  (gcc __float128 or Python mpmath ≥ 30 digits) is required.`);
   lines.push(``);
-  lines.push(`Tool: KADE Packing Diagnostic v5 · https://tretoef-estrella.github.io/KADE/`);
+  lines.push(`Tool: KADE Packing Diagnostic v6 · https://tretoef-estrella.github.io/KADE/`);
   return lines.join('\n');
 }
 
