@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KADE Packing Diagnostic · v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4f1ea;
+    --paper-dark: #ebe6db;
+    --paper-darker: #e2dccf;
+    --ink: #1a1612;
+    --ink-soft: #4a4540;
+    --ink-faint: #8a847a;
+    --rule: #2a2622;
+    --accent: #a23e2c;
+    --accent-soft: #d4b8a8;
+    --good: #2d5a3e;
+    --warn: #8a6d2c;
+    --bad: #a23e2c;
+    --grid: rgba(26, 22, 18, 0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body {
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0, transparent 24px, var(--grid) 24px, var(--grid) 25px),
+      repeating-linear-gradient(90deg, transparent 0, transparent 24px, var(--grid) 24px, var(--grid) 25px);
+  }
+  .container { max-width: 1240px; margin: 0 auto; padding: 40px 32px 96px; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .italic { font-style: italic; font-family: 'Fraunces', serif; font-weight: 400; }
+
+  /* ─── Header ─── */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  .title-block .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 48px;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+  }
+  h1 .italic { color: var(--accent); font-weight: 400; }
+  .header-right {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+  }
+  .header-right .actions { margin-top: 10px; }
+  .btn {
+    background: transparent;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 6px;
+  }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn-accent { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+  .btn-accent:hover { background: var(--ink); border-color: var(--ink); }
+  .btn-small { padding: 3px 8px; font-size: 9px; margin-left: 4px; }
+
+  /* ─── Tabs ─── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 32px;
+    gap: 0;
+  }
+  .tab {
+    padding: 12px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .tab:hover { background: var(--paper-darker); color: var(--ink); }
+  .tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+    background: var(--paper-darker);
+  }
+  .tab-counter {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12px;
+    margin-right: 8px;
+    color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ─── Section header ─── */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--ink-faint);
+    padding-bottom: 8px;
+  }
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* ─── Intro ─── */
+  .intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 36px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--ink-faint);
+  }
+  .lede {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .lede em { color: var(--accent); font-weight: 500; }
+  .toolkit-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .toolkit-list .label { color: var(--accent); }
+  .toolkit-list .value { color: var(--ink); font-weight: 500; }
+
+  /* ─── Input section ─── */
+  .input-section { margin-bottom: 36px; }
+  .dim-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto 1fr;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 18px;
+  }
+  .dim-field label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .dim-field input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--ink);
+    padding: 6px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--ink);
+    outline: none;
+  }
+  .dim-field input::placeholder { color: var(--ink-faint); font-style: italic; }
+  .file-upload { text-align: right; }
+  .file-upload input { display: none; }
+  .file-upload label {
+    display: inline-block;
+    border: 1px solid var(--ink);
+    padding: 7px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 6px;
+  }
+  .file-upload label:hover { background: var(--ink); color: var(--paper); }
+  .file-upload .from-url-btn {
+    display: inline-block;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 7px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .file-upload .from-url-btn:hover { background: var(--accent); color: var(--paper); }
+  textarea {
+    width: 100%;
+    min-height: 200px;
+    background: var(--paper-dark);
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--ink);
+    resize: vertical;
+    outline: none;
+  }
+  textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+  .input-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+  }
+  .input-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+  .input-status.ok { color: var(--good); }
+  .input-status.error { color: var(--bad); }
+
+  /* ─── Output ─── */
+  .output { display: none; }
+  .output.active { display: block; }
+  .verdict-banner {
+    border: 2px solid var(--ink);
+    padding: 22px 26px;
+    margin-bottom: 28px;
+    background: var(--paper-dark);
+    position: relative;
+  }
+  .verdict-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .verdict-class {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .verdict-detail {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    max-width: 80ch;
+  }
+  .verdict-warnings {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ink-faint);
+  }
+  .verdict-warning {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--bad);
+    margin: 4px 0;
+    letter-spacing: 0.02em;
+  }
+
+  /* ─── Metrics grid ─── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--ink-faint);
+    border: 1px solid var(--ink);
+    margin-bottom: 32px;
+  }
+  .metric {
+    background: var(--paper);
+    padding: 14px 16px;
+    position: relative;
+  }
+  .metric.highlight { background: var(--paper-darker); }
+  .metric-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.15;
+    word-break: break-all;
+  }
+  .metric.highlight .metric-value { color: var(--accent); font-size: 20px; }
+  .metric-context {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .metric .latex-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--ink-faint);
+    padding: 2px 4px;
+  }
+  .metric .latex-btn:hover { color: var(--accent); }
+
+  /* ─── Detail sections ─── */
+  .detail-section {
+    margin-bottom: 32px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--ink-faint);
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 24px;
+    margin: 10px 0;
+    align-items: start;
+  }
+  .detail-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-top: 4px;
+  }
+  .detail-content { font-family: 'Fraunces', serif; font-size: 14px; }
+  .detail-content.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  table th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--ink);
+    font-weight: 500;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    font-size: 10px;
+  }
+  table td {
+    padding: 7px 10px;
+    border-bottom: 1px dotted var(--ink-faint);
+    color: var(--ink);
+  }
+  table tr:last-child td { border-bottom: none; }
+  table tr.bad td { background: rgba(162, 62, 44, 0.06); }
+  table tr.ok td { background: rgba(45, 90, 62, 0.04); }
+
+  /* ─── Bar visuals ─── */
+  .bar-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 80px;
+    align-items: center;
+    gap: 12px;
+    margin: 5px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .bar-label { color: var(--ink-soft); }
+  .bar-track {
+    height: 14px;
+    background: var(--paper-dark);
+    border: 1px solid var(--ink-faint);
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-fill { height: 100%; background: var(--ink); }
+  .bar-fill.accent { background: var(--accent); }
+  .bar-value { color: var(--ink); text-align: right; font-weight: 500; }
+
+  /* ─── Welch barometer ─── */
+  .barometer-wrap {
+    background: var(--paper-dark);
+    border: 1px solid var(--ink);
+    padding: 24px 20px 20px;
+    margin: 14px 0;
+    position: relative;
+  }
+  .barometer {
+    position: relative;
+    height: 36px;
+    background: linear-gradient(to right, var(--paper) 0%, var(--paper-darker) 100%);
+    border: 1px solid var(--ink-faint);
+  }
+  .barometer-marker {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 2px;
+    transform: translateX(-1px);
+  }
+  .barometer-marker.welch { background: var(--ink); }
+  .barometer-marker.holder { background: #2c5282; }
+  .barometer-marker.yours { background: var(--accent); width: 3px; }
+  .barometer-marker.lb { background: var(--bad); }
+  .barometer-label {
+    position: absolute;
+    top: -22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .barometer-label.welch { color: var(--ink); }
+  .barometer-label.holder { color: #2c5282; }
+  .barometer-label.yours { color: var(--accent); font-weight: 600; }
+  .barometer-label.lb { color: var(--bad); }
+  .barometer-value {
+    position: absolute;
+    bottom: -22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    transform: translateX(-50%);
+    color: var(--ink-soft);
+  }
+
+  /* ─── Vertex chips ─── */
+  .vertex {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--paper-darker);
+    border: 1px solid var(--ink);
+    margin: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .vertex.dominant { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+  .worst-tuple { padding: 8px 0; }
+
+  /* ─── Vectors table ─── */
+  .vectors-section { margin-top: 24px; }
+  .vectors-section table { font-size: 10px; }
+  .vectors-section table td { padding: 4px 8px; }
+
+  /* ─── Holder comparison ─── */
+  .compare-section { background: var(--paper-dark); border: 1px solid var(--ink); padding: 22px; margin: 24px 0; }
+  .compare-status {
+    display: inline-block;
+    padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .compare-status.beats { background: var(--good); color: var(--paper); }
+  .compare-status.ties  { background: var(--warn); color: var(--paper); }
+  .compare-status.worse { background: var(--bad); color: var(--paper); }
+  .compare-status.loading { background: var(--ink-faint); color: var(--paper); }
+  .compare-status.error { background: var(--bad); color: var(--paper); }
+
+  /* ─── About ─── */
+  .about-section { max-width: 78ch; }
+  .about-section h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 26px;
+    margin: 36px 0 14px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .about-section h2:first-child { margin-top: 0; }
+  .about-section h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 18px;
+    margin: 20px 0 10px;
+    color: var(--accent);
+  }
+  .about-section p {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .about-section ul {
+    list-style: none;
+    margin: 12px 0 16px;
+    padding-left: 0;
+  }
+  .about-section li {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.65;
+    margin-bottom: 8px;
+    padding-left: 22px;
+    position: relative;
+  }
+  .about-section li:before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .about-section .ref {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    display: block;
+    padding-left: 12px;
+    border-left: 2px solid var(--ink-faint);
+    margin: 6px 0;
+  }
+  .disclaimer-warning {
+    background: rgba(162, 62, 44, 0.10);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    color: var(--ink);
+  }
+
+  /* ─── Screener ─── */
+  .screener-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+    margin-bottom: 22px;
+  }
+  .screener-meta .commit-hash { color: var(--ink); }
+  .screener-meta a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+  .screener-meta a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+  .screener-table-wrap { overflow-x: auto; border: 1px solid var(--ink); }
+  .screener-table { font-size: 12px; min-width: 800px; }
+  .screener-table th { background: var(--paper-darker); cursor: pointer; user-select: none; }
+  .screener-table th:hover { background: var(--paper-dark); color: var(--ink); }
+  .screener-table .sort-arrow { color: var(--ink-faint); font-size: 8px; margin-left: 4px; }
+  .screener-table td.cell-name { font-weight: 600; }
+  .screener-banner {
+    margin-top: 14px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border: 1px solid var(--ink-faint);
+    background: var(--paper-dark);
+    color: var(--ink-soft);
+  }
+  .screener-banner.ok { color: var(--good); border-color: var(--good); }
+  .screener-banner.warn { color: var(--warn); border-color: var(--warn); }
+
+  /* ─── Five-kernel table ─── */
+  .kernels-table { font-size: 11px; }
+  .kernels-table td { padding: 6px 10px; }
+  .kernels-table .delta-ok { color: var(--good); }
+  .kernels-table .delta-warn { color: var(--bad); }
+
+  /* ─── Footer ─── */
+  footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  footer .author { font-family: 'Fraunces', serif; font-style: italic; font-size: 12px; text-transform: none; letter-spacing: 0; }
+
+  /* ─── Print ─── */
+  @media print {
+    body { background: white !important; }
+    .btn, .file-upload, .input-actions, .tabs { display: none !important; }
+    .tab-content { display: block !important; page-break-before: auto; }
+  }
+  @media (max-width: 880px) {
+    h1 { font-size: 32px; }
+    .intro { grid-template-columns: 1fr; gap: 16px; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-grid { grid-template-columns: 1fr; gap: 6px; }
+    .dim-controls { grid-template-columns: 1fr 1fr; }
+    .file-upload { text-align: left; grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ──── HEADER ──── -->
+<header>
+  <div class="title-block">
+    <div class="meta">Grassmannian Frame Diagnostic · v3</div>
+    <h1>KADE <span class="italic">Packing Diagnostic</span></h1>
+  </div>
+  <div class="header-right">
+    <div>FLOAT64 · LOCAL · NO SERVER</div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">Print</button>
+      <button class="btn" onclick="shareTool()">Share</button>
+    </div>
+  </div>
+</header>
+
+<!-- ──── TABS ──── -->
+<div class="tabs">
+  <div class="tab active" data-tab="calculator" onclick="switchTab('calculator')"><span class="tab-counter">i.</span>Calculator</div>
+  <div class="tab" data-tab="screener" onclick="switchTab('screener')"><span class="tab-counter">ii.</span>Screener</div>
+  <div class="tab" data-tab="about" onclick="switchTab('about')"><span class="tab-counter">iii.</span>About &amp; Theory</div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- ──────── TAB 1: CALCULATOR ─────────────── -->
+<!-- ══════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-calculator">
+
+  <div class="intro">
+    <div class="lede">
+      Paste or upload a Grassmannian line packing in the
+      <em>Game of Sloanes</em> format (2·d·n real floats, real block first then
+      imaginary block, one per line). The tool computes a structural
+      fingerprint: <em>five-kernel coherence</em>, Welch slack, frame tightness,
+      saturated graph, cliff, worst d-tuple morphology, Bargmann phase test,
+      bound validity, and an optional <em>side-by-side comparison</em> against
+      the current Game of Sloanes holder packing.
+    </div>
+    <div class="toolkit-list">
+      <div><span class="label">→</span> <span class="value">μ</span> · five-kernel coherence</div>
+      <div><span class="label">→</span> <span class="value">μ / Welch</span> · slack</div>
+      <div><span class="label">→</span> <span class="value">frame gap</span> · tightness</div>
+      <div><span class="label">→</span> <span class="value">cliff D₁</span> · basin rigidity</div>
+      <div><span class="label">→</span> <span class="value">saturated %</span> · graph density</div>
+      <div><span class="label">→</span> <span class="value">kade base</span> · min |det Gᵀ|</div>
+      <div><span class="label">→</span> <span class="value">kade spectral</span> · ratio λ_max/λ_min</div>
+      <div><span class="label">→</span> <span class="value">kade couple</span> · internal pair</div>
+      <div><span class="label">→</span> <span class="value">Bargmann phases</span> · discrete or continuous</div>
+      <div><span class="label">→</span> <span class="value">vs. holder</span> · GoS comparison</div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-section">
+    <div class="section-header">
+      <span class="section-num">§ 01</span>
+      <span class="section-title">Input</span>
+    </div>
+
+    <div class="dim-controls">
+      <div class="dim-field">
+        <label for="d-input">d (dim)</label>
+        <input type="number" id="d-input" min="2" max="20" placeholder="auto">
+      </div>
+      <div class="dim-field">
+        <label for="n-input">n (vectors)</label>
+        <input type="number" id="n-input" min="2" max="200" placeholder="auto">
+      </div>
+      <div></div>
+      <div class="file-upload">
+        <button class="from-url-btn" onclick="loadFromURL()">Load from URL</button>
+        <input type="file" id="file-input" accept=".txt,.dat">
+        <label for="file-input">Upload .txt</label>
+      </div>
+    </div>
+
+    <textarea id="packing-input" placeholder="Paste 2·d·n floats here — one per line, real block first, imaginary block second.
+
+Example for d=2, n=14 → 56 floats total.
+
+Filename hint: if your file is named like '3x14_xxx.txt', the (d,n) values are auto-detected on upload."></textarea>
+
+    <div class="input-actions">
+      <div class="input-status" id="status">Ready · waiting for input</div>
+      <div>
+        <button class="btn" onclick="resetAll()">Reset</button>
+        <button class="btn btn-accent" onclick="analyze()">Analyze →</button>
+        <button class="btn" onclick="exportReport()">Export JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="output" id="output">
+
+    <div class="verdict-banner">
+      <div class="verdict-label">Structural Verdict</div>
+      <div class="verdict-class" id="verdict-class">—</div>
+      <div class="verdict-detail" id="verdict-detail">—</div>
+      <div class="verdict-warnings" id="verdict-warnings" style="display:none;"></div>
+    </div>
+
+    <!-- Core metrics -->
+    <div class="metrics-grid" id="metrics-grid"></div>
+
+    <!-- Holder comparison (auto-fetched) -->
+    <div class="detail-section" id="holder-compare-section" style="display:none;">
+      <div class="section-header">
+        <span class="section-num">§ 02</span>
+        <span class="section-title">Game of Sloanes holder comparison</span>
+      </div>
+      <div class="compare-section" id="compare-content"></div>
+    </div>
+
+    <!-- Welch barometer -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 03</span>
+        <span class="section-title">Coherence barometer</span>
+      </div>
+      <div id="barometer-content"></div>
+    </div>
+
+    <!-- Five-kernel -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 04</span>
+        <span class="section-title">Five-kernel μ verification</span>
+      </div>
+      <div class="detail-content" id="kernels-content"></div>
+    </div>
+
+    <!-- Saturated graph -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 05</span>
+        <span class="section-title">Saturated graph</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Density</div>
+        <div class="detail-content" id="sat-density"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Distribution</div>
+        <div class="detail-content" id="coh-histogram"></div>
+      </div>
+    </div>
+
+    <!-- Worst d-tuple -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 06</span>
+        <span class="section-title">Worst d-tuple <span style="font-style:normal; font-size:14px; color:var(--ink-faint);">— argmin |det Gᵀ|</span></span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Vertices</div>
+        <div class="detail-content"><div class="worst-tuple" id="worst-tuple-display"></div></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Determinant</div>
+        <div class="detail-content mono" id="worst-det"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Internal pairs</div>
+        <div class="detail-content" id="worst-pairs"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Couple ratio</div>
+        <div class="detail-content" id="couple-ratio"></div>
+      </div>
+    </div>
+
+    <!-- Frame statistics -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 07</span>
+        <span class="section-title">Frame statistics</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Frame operator</div>
+        <div class="detail-content" id="frame-eigs"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Tightness gap</div>
+        <div class="detail-content" id="tightness-gap"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Unit-norm range</div>
+        <div class="detail-content mono" id="norm-range"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Field type</div>
+        <div class="detail-content" id="field-type"></div>
+      </div>
+    </div>
+
+    <!-- Bargmann -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 08</span>
+        <span class="section-title">Bargmann phase test</span>
+      </div>
+      <div class="detail-content" id="bargmann-content"></div>
+    </div>
+
+    <!-- Reference bounds -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 09</span>
+        <span class="section-title">Reference lower bounds</span>
+      </div>
+      <div class="detail-content">
+        <table id="bounds-table"></table>
+      </div>
+    </div>
+
+    <!-- Vectors -->
+    <div class="detail-section">
+      <div class="section-header">
+        <span class="section-num">§ 10</span>
+        <span class="section-title">Parsed vectors <span style="font-style:normal; font-size:14px; color:var(--ink-faint);">— 16-digit components</span></span>
+      </div>
+      <div class="vectors-section" id="vectors-table"></div>
+    </div>
+
+    <div class="disclaimer-warning">⚠ Float64 only. Does NOT guarantee 8th-decimal byte-exact for Game of Sloanes record submissions. Quad-precision verification (gcc __float128 or Python mpmath ≥ 30 digits) is required for record submissions.</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- ──────── TAB 2: SCREENER ──────────────── -->
+<!-- ══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-screener">
+
+  <div class="section-header">
+    <span class="section-num">§ S1</span>
+    <span class="section-title">Game of Sloanes leaderboard snapshot</span>
+  </div>
+
+  <div class="screener-meta">
+    Source: <a href="https://github.com/gnikylime/GameofSloanes" target="_blank">github.com/gnikylime/GameofSloanes</a><br>
+    Leaderboard last updated upstream: <span class="commit-hash">2026-04-21</span><br>
+    Static snapshot embedded in this HTML — does not auto-refresh. Use the
+    button below to check whether the upstream leaderboard has changed.<br>
+  </div>
+
+  <div id="screener-banner" class="screener-banner">
+    <button class="btn btn-small" onclick="checkLiveLeaderboard()">Check upstream</button>
+    <span id="screener-banner-text">Snapshot embedded · click above to compare with live README on GitHub.</span>
+  </div>
+
+  <p style="font-family: 'Fraunces', serif; font-size: 15px; color: var(--ink-soft); margin: 22px 0; max-width: 80ch;">
+    Each row is a published holder packing in the leaderboard. Columns:
+    <em>μ</em> = best coherence on file, <em>LB</em> = active lower bound (max
+    of Welch-Rankin, Bukh-Cox, orthoplex, Levenstein-2 that apply for that
+    cell, as listed by Game of Sloanes), <em>μ − LB</em> = gap to the
+    mathematical floor, <em>Holder</em> = creator code, <em>Mark</em> =
+    GoS legend (○ provably optimal, △ conjectured optimal). Click column
+    headers to sort. The data above is byte-exact from the leaderboard at
+    the cited date — no values added, removed, or altered.
+  </p>
+
+  <div class="screener-table-wrap">
+    <table class="screener-table" id="screener-table">
+      <thead>
+        <tr>
+          <th data-key="d">d <span class="sort-arrow">⇅</span></th>
+          <th data-key="n">n <span class="sort-arrow">⇅</span></th>
+          <th data-key="mu">μ <span class="sort-arrow">⇅</span></th>
+          <th data-key="lb">LB <span class="sort-arrow">⇅</span></th>
+          <th data-key="gap">μ − LB <span class="sort-arrow">⇅</span></th>
+          <th data-key="holder">Holder <span class="sort-arrow">⇅</span></th>
+          <th data-key="mark">Mark <span class="sort-arrow">⇅</span></th>
+          <th>Holder file</th>
+        </tr>
+      </thead>
+      <tbody id="screener-tbody"></tbody>
+    </table>
+  </div>
+
+  <p style="font-family: 'Fraunces', serif; font-size: 13px; color: var(--ink-faint); margin-top: 20px; font-style: italic; max-width: 80ch;">
+    Holder codes: <strong>hlc</strong> = Henry Cohn · <strong>dgm</strong> =
+    Dustin G. Mixon · <strong>etf</strong> = explicit equiangular tight frame
+    construction · <strong>njas</strong> = N. J. A. Sloane catalog (spherical
+    codes) · <strong>JJ</strong> = Jasper–Joseph · <strong>bmem</strong> =
+    Bastien Massion &amp; Estelle Massart · <strong>jrr</strong> = Juan
+    Román-Roche &amp; Sebastián Roca-Jerat. Mark "○" = provably optimal per GoS
+    legend. Mark "△" = conjectured optimal. Empty mark = open. Subset of
+    leaderboard shown; full list at the cited repo.
+  </p>
+
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- ──────── TAB 3: ABOUT & THEORY ────────── -->
+<!-- ══════════════════════════════════════════ -->
+<div class="tab-content" id="tab-about">
+  <div class="about-section">
+
+    <h2>What this tool does</h2>
+    <p>
+      KADE Packing Diagnostic is a structural diagnostic for finite-dimensional
+      complex Grassmannian line packings. Given a packing Φ of <em>n</em> unit
+      vectors in ℂ<sup>d</sup>, it computes a compact <em>fingerprint</em> of
+      structural indicators that go beyond the worst pairwise coherence μ.
+      The tool runs entirely in the browser. No data is uploaded anywhere.
+    </p>
+
+    <h3>Quantities computed</h3>
+    <ul>
+      <li><strong>μ — coherence</strong>, computed by five independent float64 kernels (naive, Kahan compensated, pairwise divide-and-conquer, Gram-triangular with reverse accumulation, and double-double TwoProduct+TwoSum at roughly 31 extra bits of precision) and cross-checked. The maximum disagreement is reported.</li>
+      <li><strong>μ / Welch</strong> — slack against the Welch–Rankin bound. Near 1.0 indicates a near-Welch (typically near-ETF) configuration; large values indicate room above the dyadic algebraic floor.</li>
+      <li><strong>Saturated graph</strong> G_sat: pairs with μ − |⟨v_i, v_j⟩| &lt; 10⁻⁸. Reported as density and as a histogram across 20 bins from 0 to μ.</li>
+      <li><strong>Cliff D₁</strong>: the ratio gap[n_sat] / gap[n_sat−1] of sorted gaps to μ. Large cliff (≫ 1) signals a smooth-rigid basin: the saturated set is separated by orders of magnitude from the rest.</li>
+      <li><strong>kade base</strong>: the minimum of |det G_T| over all d-subsets T of the n vectors. The worst d-tuple is a smallest rank-deficient subframe. Standard pair-based analysis cannot see this.</li>
+      <li><strong>kade spectral</strong>: λ_max / λ_min on the worst d-tuple's Gram. Reveals how close the worst d-tuple is to true rank-deficiency at d − 1.</li>
+      <li><strong>kade couple</strong>: max/median of pairwise coherences inside the worst d-tuple. Distinguishes uniform-trio morphology (ratio ≈ 1) from couple-plus-witnesses morphology (ratio ≫ 1).</li>
+      <li><strong>Tightness gap</strong>: spread of frame-operator eigenvalues λ_max(VV*) − λ_min(VV*). Zero within ε means tight frame.</li>
+      <li><strong>Bargmann phase test</strong> on K₃ cliques in the saturated graph: angles of triple products ⟨v_a, v_b⟩⟨v_b, v_c⟩⟨v_c, v_a⟩. Discrete distribution suggests algebraic structure; continuous suggests numerical optimisation.</li>
+      <li><strong>Reference bounds</strong>: Welch–Rankin (always), orthoplex (valid when n &gt; d²), Levenstein-2 (valid when n &gt; d(d+1)/2). The active bound is the maximum of those that apply.</li>
+      <li><strong>Field type</strong>: a check on max |Im(v)| over all vector components — flags real-only frames (all imaginary parts &lt; 10⁻¹²) where Bargmann phases collapse to {0, π}.</li>
+      <li><strong>Duplicate detection</strong>: identifies vectors v_i ≈ v_j within 10⁻¹⁰ L¹ component distance, which usually indicates a submission error.</li>
+      <li><strong>Holder comparison</strong>: when (d, n) appears in the embedded Game of Sloanes snapshot, the holder file is fetched live from the upstream repository and compared metric-by-metric.</li>
+      <li><strong>Parsed vectors</strong>: displayed with 16-digit complex components, copy-paste-able for downstream verification.</li>
+    </ul>
+
+    <h2>Why each thing</h2>
+
+    <h3>Why coherence μ</h3>
+    <p>
+      The defining quantity of the Grassmannian packing problem. The
+      <em>optimal projective packing</em> in ℂ<sup>d</sup> is the configuration
+      minimising μ = max_{i &lt; j} |⟨v_i, v_j⟩|. Applications include compressed
+      sensing, digital fingerprinting, quantum state tomography, and multiple
+      description coding.
+    </p>
+
+    <h3>Why μ / Welch and the cliff D₁</h3>
+    <p>
+      The Welch–Rankin bound is universal for any (d, n) with n &gt; d. The
+      ratio μ / Welch reports how close the configuration is to the dyadic
+      floor. The cliff D₁ goes further: it measures whether the basin is
+      <em>smooth-rigid</em> (large cliff means refinement of any single pair
+      hits saturated pair constraints from many other pairs simultaneously)
+      or still descent-feasible (small cliff means smooth-max optimisation
+      has room to move).
+    </p>
+
+    <h3>Why kade — the worst d-tuple</h3>
+    <p>
+      Coherence is a function of <em>pairs</em>. Two configurations with
+      identical μ and identical saturated graph can have radically different
+      <em>triplet / quartet / d-tuple geometries</em>. The minimum |det G_T|
+      across all d-subsets exposes near-rank-deficient configurations that
+      are invisible to pair-based analysis. This is the methodological pivot
+      of the kade toolkit: reframing the basin analysis from k = 2 to
+      k = d. The output triplet, plus the internal pair couple ratio, plus
+      the spectral ratio λ_max / λ_min, together characterise the
+      morphology of the basin floor in a way the worst pair alone cannot.
+    </p>
+
+    <h3>Why Bargmann phase and tightness gap</h3>
+    <p>
+      Bargmann triple products on K₃ cliques are projective invariants —
+      they do not depend on phase choices of individual vectors. A discrete
+      phase distribution (a small finite set of distinct values) signals
+      algebraic structure such as an equiangular tight frame or a real
+      frame. A continuous phase distribution signals a numerically
+      optimised packing without algebraic regularity. The frame-operator
+      tightness gap λ_max(VV*) − λ_min(VV*) is the standard test for
+      tightness: zero (within numerical noise) means VV* is a multiple of
+      the identity.
+    </p>
+
+    <h3>Why holder comparison</h3>
+    <p>
+      A single number out of context is hard to interpret. Side-by-side
+      comparison with the current Game of Sloanes holder for the same
+      (d, n) immediately shows whether a submitted packing improves on
+      the existing best, ties it (which is usually noise or coincidence),
+      or falls short. Every metric is computed by the same code path on
+      both packings, so the comparison is byte-exact within float64.
+    </p>
+
+    <h2>Rigorous background</h2>
+
+    <h3>Bounds and inequalities cited above</h3>
+    <p class="ref">Welch, L. R. "Lower bounds on the maximum cross correlation of signals." IEEE Trans. Inform. Theory 20.3 (1974): 397–399.</p>
+    <p class="ref">Levenshtein, V. I. "Designs as maximum codes in polynomial metric spaces." Acta Appl. Math. 29.1–2 (1992): 1–82.</p>
+    <p class="ref">Bukh, B., and Cox, C. "Nearly orthogonal vectors and small antipodal spherical codes." Israel J. Math. 238 (2020).</p>
+    <p class="ref">Conway, J. H., Hardin, R. H., and Sloane, N. J. A. "Packing lines, planes, etc.: packings in Grassmannian spaces." Experiment. Math. 5.2 (1996): 139–159.</p>
+    <p class="ref">Rankin, R. A. "The closest packing of spherical caps in n dimensions." Proc. Glasgow Math. Assoc. 2 (1955): 139–144.</p>
+    <p class="ref">Strohmer, T., and Heath, R. W. Jr. "Grassmannian frames with applications to coding and communication." Appl. Comput. Harmon. Anal. 14.3 (2003): 257–275.</p>
+
+    <h3>Frame theory and equiangular tight frames</h3>
+    <p class="ref">Fickus, M., and Mixon, D. G. "Tables of the existence of equiangular tight frames." arXiv:1504.00253 (2015–2016).</p>
+    <p class="ref">Casazza, P. G., Fickus, M., Mixon, D. G., Wang, Y., and Zhou, Z. "Constructing tight fusion frames." Appl. Comput. Harmon. Anal. 30.2 (2011): 175–187.</p>
+    <p class="ref">Bodmann, B. G., and Haas, J. "Frame potentials and the geometry of frames." J. Fourier Anal. Appl. 21.6 (2015): 1344–1383.</p>
+    <p class="ref">Benedetto, J. J., and Fickus, M. "Finite normalized tight frames." Adv. Comput. Math. 18.2 (2003): 357–385.</p>
+
+    <h3>Bargmann invariants and projective geometry</h3>
+    <p class="ref">Bargmann, V. "Note on Wigner's theorem on symmetry operations." J. Math. Phys. 5.7 (1964): 862–868.</p>
+    <p class="ref">Simon, R., et al. "Operational Bargmann invariants and projective measurements." Phys. Rev. Lett. 104.20 (2010).</p>
+
+    <h3>Game of Sloanes problem and leaderboard</h3>
+    <p class="ref">Jasper, J., King, E. J., and Mixon, D. G. "Game of Sloanes: Best known packings in complex projective space." SPIE Proc. 11138, Wavelets and Sparsity XVIII (2019). arXiv:1907.07848.</p>
+    <p class="ref">Game of Sloanes repository: <a href="https://github.com/gnikylime/GameofSloanes" target="_blank">github.com/gnikylime/GameofSloanes</a>. Curated by John Jasper, Emily J. King, and Dustin G. Mixon.</p>
+
+    <h3>Sphere packing and projective designs</h3>
+    <p class="ref">Cohn, H., and Kumar, A. "Universally optimal distribution of points on spheres." J. Amer. Math. Soc. 20.1 (2007): 99–148.</p>
+    <p class="ref">Renes, J. M., Blume-Kohout, R., Scott, A. J., and Caves, C. M. "Symmetric informationally complete quantum measurements." J. Math. Phys. 45.6 (2004): 2171–2180.</p>
+
+    <h2>What this tool does NOT claim</h2>
+    <ul>
+      <li>It does <strong>not</strong> claim global optimality of any packing it analyses.</li>
+      <li>It does <strong>not</strong> claim that the structural classes referenced (Welch-saturated tight algebraic, generic non-tight numerical, near-Welch non-tight numerical) are exhaustive of all possible Grassmannian basin morphologies.</li>
+      <li>It does <strong>not</strong> claim that small cliff implies a packing is attackable, or that large cliff implies it is not; cliff is one of several diagnostic indicators.</li>
+      <li>It does <strong>not</strong> claim that the kade toolkit is complete. Additional invariants (persistent homology of the coherence graph, higher-order p-frame potentials, erasure-robustness) remain to be integrated.</li>
+      <li>It does <strong>not</strong> claim authority over the field; it is the output of an independent investigator collaborating with an AI model, and is offered as a diagnostic instrument to anyone working on or studying Grassmannian frame packings.</li>
+      <li>It does <strong>not</strong> claim that μ computed in float64 is sufficient for a Game of Sloanes record submission at the 8th-decimal byte-exact rule. <strong>Quad-precision verification</strong> (gcc __float128 or Python mpmath at ≥ 30 digits) is required for record submissions.</li>
+      <li>It does <strong>not</strong> claim novelty for individual components. μ, the Welch bound, the frame operator, Gram subdeterminants as RIP δ_d quantities, and Bargmann invariants all have precedents in the cited literature. The integrated cross-cell application is what the kade toolkit organises.</li>
+    </ul>
+
+    <h2>Who this is useful for</h2>
+    <ul>
+      <li>Researchers in frame theory who want to diagnose packings on their own disk and obtain a structural fingerprint in seconds.</li>
+      <li>Students learning the geometry of Grassmannian configurations who want to see what lies beyond the worst pair.</li>
+      <li>Anyone preparing a Game of Sloanes submission who wants a pre-submission sanity check (with the caveat that the float64 disclaimer above applies).</li>
+      <li>Practitioners in compressed sensing, MIMO precoding, quantum tomography, or multiple description coding who use Grassmannian frames in applications and want to characterise the configurations they work with.</li>
+    </ul>
+    <p>The tool does not replace mathematical reasoning, quad-precision verification, or peer review. It is one diagnostic instrument among others.</p>
+
+    <h2>Authorship</h2>
+    <p>
+      Independent investigator: <strong>Rafael Amichis Luengo (RAL)</strong>,
+      Madrid · <span class="mono">tretoef@gmail.com</span>.
+    </p>
+    <p>
+      The kade diagnostic framework was developed in an iterative collaboration
+      between RAL and Claude (Anthropic), across a series of empirical
+      cross-cell investigations on Grassmannian frame packings during 2026.
+      The HTML tool is open source and runs locally in the user's browser; no
+      data is transmitted off-device by the Calculator. The Screener tab and
+      the holder-comparison feature make optional outbound requests to
+      <span class="mono">raw.githubusercontent.com</span> to retrieve public
+      packing files from the Game of Sloanes repository.
+    </p>
+
+  </div>
+</div>
+
+<!-- ──── FOOTER ──── -->
+<footer>
+  <div>KADE PACKING DIAGNOSTIC · v3 · IEEE 754 FLOAT64</div>
+  <div class="author">Rafael Amichis Luengo (RAL)</div>
+</footer>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// KADE Packing Diagnostic v3 — Core computation in pure JS
+// All operations in IEEE 754 float64 (JavaScript native).
+// No external libraries beyond Google Fonts CSS.
+// No data is transmitted off-device by the Calculator.
+// Optional fetches to raw.githubusercontent.com for GoS holders.
+// ════════════════════════════════════════════════════════════
+
+// ─── Tab switching ───
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ─── Complex arithmetic ───
+function cMul(a, b) { return [a[0]*b[0] - a[1]*b[1], a[0]*b[1] + a[1]*b[0]]; }
+function cAbs(a) { return Math.hypot(a[0], a[1]); }
+function fmt(x, digits=8) {
+  if (x === null || x === undefined || !isFinite(x)) return '—';
+  if (Math.abs(x) >= 1e6 || (Math.abs(x) > 0 && Math.abs(x) < 1e-3)) return x.toExponential(Math.max(2, digits-4));
+  return x.toFixed(digits);
+}
+function fmtPct(x) { return x.toFixed(2) + '%'; }
+function binomial(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k > n - k) k = n - k;
+  let c = 1;
+  for (let i = 0; i < k; i++) c = c * (n - i) / (i + 1);
+  return Math.round(c);
+}
+
+function innerProduct(V, i, j, d) {
+  let re = 0, im = 0;
+  for (let k = 0; k < d; k++) {
+    const u = V[k][i], v = V[k][j];
+    re += u[0]*v[0] + u[1]*v[1];
+    im += u[0]*v[1] - u[1]*v[0];
+  }
+  return [re, im];
+}
+
+// ════════════════════════════════════════════════════════════
+// FIVE-KERNEL μ COMPUTATION
+// ════════════════════════════════════════════════════════════
+function muKernelNaive(V, d, n) {
+  let mu = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      const ip = innerProduct(V, i, j, d);
+      const a = Math.sqrt(ip[0]*ip[0] + ip[1]*ip[1]);
+      if (a > mu) mu = a;
+    }
+  }
+  return mu;
+}
+
+function muKernelKahan(V, d, n) {
+  let mu = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      let re = 0, c_re = 0, im = 0, c_im = 0;
+      for (let k = 0; k < d; k++) {
+        const u = V[k][i], v = V[k][j];
+        let y = u[0]*v[0] + u[1]*v[1] - c_re;
+        let t = re + y; c_re = (t - re) - y; re = t;
+        y = u[0]*v[1] - u[1]*v[0] - c_im;
+        t = im + y; c_im = (t - im) - y; im = t;
+      }
+      const a = Math.sqrt(re*re + im*im);
+      if (a > mu) mu = a;
+    }
+  }
+  return mu;
+}
+
+function pairwiseSum(arr, lo, hi) {
+  if (hi - lo <= 8) {
+    let s = 0;
+    for (let i = lo; i < hi; i++) s += arr[i];
+    return s;
+  }
+  const mid = (lo + hi) >> 1;
+  return pairwiseSum(arr, lo, mid) + pairwiseSum(arr, mid, hi);
+}
+function muKernelPairwise(V, d, n) {
+  let mu = 0;
+  const reTerms = new Float64Array(d);
+  const imTerms = new Float64Array(d);
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      for (let k = 0; k < d; k++) {
+        const u = V[k][i], v = V[k][j];
+        reTerms[k] = u[0]*v[0] + u[1]*v[1];
+        imTerms[k] = u[0]*v[1] - u[1]*v[0];
+      }
+      const re = pairwiseSum(reTerms, 0, d);
+      const im = pairwiseSum(imTerms, 0, d);
+      const a = Math.sqrt(re*re + im*im);
+      if (a > mu) mu = a;
+    }
+  }
+  return mu;
+}
+
+function muKernelGramTri(V, d, n) {
+  // Same inner product but accumulating in reverse order — independent rounding path
+  let mu = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      let re = 0, im = 0;
+      for (let k = d-1; k >= 0; k--) {
+        const u = V[k][i], v = V[k][j];
+        re += u[0]*v[0] + u[1]*v[1];
+        im += u[0]*v[1] - u[1]*v[0];
+      }
+      const a = Math.sqrt(re*re + im*im);
+      if (a > mu) mu = a;
+    }
+  }
+  return mu;
+}
+
+// Kernel 5: double-double (TwoProduct + TwoSum), roughly 31 extra bits
+function twoSum(a, b) {
+  const s = a + b;
+  const a_ = s - b;
+  const b_ = s - a_;
+  return [s, (a - a_) + (b - b_)];
+}
+function twoProd(a, b) {
+  const p = a * b;
+  const SHIFT = 134217729; // 2^27 + 1
+  const a_big = SHIFT * a;
+  const a_hi = a_big - (a_big - a);
+  const a_lo = a - a_hi;
+  const b_big = SHIFT * b;
+  const b_hi = b_big - (b_big - b);
+  const b_lo = b - b_hi;
+  const eps = ((a_hi * b_hi - p) + a_hi * b_lo + a_lo * b_hi) + a_lo * b_lo;
+  return [p, eps];
+}
+function muKernelDD(V, d, n) {
+  let mu = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      let re_hi = 0, re_lo = 0, im_hi = 0, im_lo = 0;
+      for (let k = 0; k < d; k++) {
+        const u = V[k][i], v = V[k][j];
+        // re += u[0]*v[0] + u[1]*v[1]
+        for (const [a, b] of [[u[0], v[0]], [u[1], v[1]]]) {
+          const [p, ep] = twoProd(a, b);
+          const [s, es] = twoSum(re_hi, p);
+          re_hi = s;
+          re_lo += ep + es;
+        }
+        // im += u[0]*v[1] - u[1]*v[0]
+        const [p1, e1] = twoProd(u[0], v[1]);
+        const [s1, es1] = twoSum(im_hi, p1);
+        im_hi = s1; im_lo += e1 + es1;
+        const [p2, e2] = twoProd(u[1], v[0]);
+        const [s2, es2] = twoSum(im_hi, -p2);
+        im_hi = s2; im_lo += -e2 + es2;
+      }
+      const re = re_hi + re_lo;
+      const im = im_hi + im_lo;
+      const a = Math.sqrt(re*re + im*im);
+      if (a > mu) mu = a;
+    }
+  }
+  return mu;
+}
+
+// ─── Determinant of subset Gram (LU with partial pivot, complex) ───
+function complexDet(re, im, n) {
+  const A_re = re.map(row => Array.from(row));
+  const A_im = im.map(row => Array.from(row));
+  let det_re = 1, det_im = 0, sign = 1;
+  for (let i = 0; i < n; i++) {
+    let maxAbs = 0, pivotRow = i;
+    for (let r = i; r < n; r++) {
+      const mag = Math.hypot(A_re[r][i], A_im[r][i]);
+      if (mag > maxAbs) { maxAbs = mag; pivotRow = r; }
+    }
+    if (maxAbs === 0) return 0;
+    if (pivotRow !== i) {
+      [A_re[i], A_re[pivotRow]] = [A_re[pivotRow], A_re[i]];
+      [A_im[i], A_im[pivotRow]] = [A_im[pivotRow], A_im[i]];
+      sign = -sign;
+    }
+    const ar = A_re[i][i], ai = A_im[i][i];
+    const new_det_re = det_re*ar - det_im*ai;
+    const new_det_im = det_re*ai + det_im*ar;
+    det_re = new_det_re; det_im = new_det_im;
+    for (let r = i+1; r < n; r++) {
+      const denom = ar*ar + ai*ai;
+      const fr = (A_re[r][i]*ar + A_im[r][i]*ai) / denom;
+      const fi = (A_im[r][i]*ar - A_re[r][i]*ai) / denom;
+      for (let c = i; c < n; c++) {
+        const tr = A_re[i][c], ti = A_im[i][c];
+        A_re[r][c] -= fr*tr - fi*ti;
+        A_im[r][c] -= fr*ti + fi*tr;
+      }
+    }
+  }
+  det_re *= sign; det_im *= sign;
+  return Math.hypot(det_re, det_im);
+}
+
+function detGramSubset(V, T, d) {
+  const k = T.length;
+  const G_re = Array.from({length: k}, () => new Float64Array(k));
+  const G_im = Array.from({length: k}, () => new Float64Array(k));
+  for (let a = 0; a < k; a++) {
+    for (let b = a; b < k; b++) {
+      const ip = innerProduct(V, T[a], T[b], d);
+      G_re[a][b] = ip[0]; G_im[a][b] = ip[1];
+      G_re[b][a] = ip[0]; G_im[b][a] = -ip[1];
+    }
+  }
+  return complexDet(G_re, G_im, k);
+}
+
+function* combinations(n, k) {
+  const idx = Array.from({length: k}, (_, i) => i);
+  while (true) {
+    yield idx.slice();
+    let i = k - 1;
+    while (i >= 0 && idx[i] === n - k + i) i--;
+    if (i < 0) break;
+    idx[i]++;
+    for (let j = i + 1; j < k; j++) idx[j] = idx[j-1] + 1;
+  }
+}
+
+// ─── Hermitian eigenvalues via real-block expansion + Jacobi ───
+function hermitianEig(re, im, n) {
+  const N = 2*n;
+  const M = Array.from({length: N}, () => new Float64Array(N));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      M[i][j] = re[i][j];
+      M[i][j+n] = -im[i][j];
+      M[i+n][j] = im[i][j];
+      M[i+n][j+n] = re[i][j];
+    }
+  }
+  const eigs = jacobiSym(M, N);
+  eigs.sort((a, b) => a - b);
+  const result = [];
+  for (let i = 0; i < N; i += 2) result.push((eigs[i] + eigs[i+1]) / 2);
+  return result;
+}
+
+function jacobiSym(A, n, maxIter = 200) {
+  const a = A.map(r => Array.from(r));
+  for (let iter = 0; iter < maxIter; iter++) {
+    let p = 0, q = 1, maxOff = 0;
+    for (let i = 0; i < n; i++) {
+      for (let j = i+1; j < n; j++) {
+        if (Math.abs(a[i][j]) > maxOff) { maxOff = Math.abs(a[i][j]); p = i; q = j; }
+      }
+    }
+    if (maxOff < 1e-14) break;
+    const theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
+    const t = (theta >= 0 ? 1 : -1) / (Math.abs(theta) + Math.sqrt(theta*theta + 1));
+    const c = 1 / Math.sqrt(t*t + 1);
+    const s = t * c;
+    for (let i = 0; i < n; i++) {
+      if (i !== p && i !== q) {
+        const aip = a[i][p], aiq = a[i][q];
+        a[i][p] = c*aip - s*aiq; a[p][i] = a[i][p];
+        a[i][q] = s*aip + c*aiq; a[q][i] = a[i][q];
+      }
+    }
+    const app = a[p][p], aqq = a[q][q], apq = a[p][q];
+    a[p][p] = c*c*app - 2*s*c*apq + s*s*aqq;
+    a[q][q] = s*s*app + 2*s*c*apq + c*c*aqq;
+    a[p][q] = 0; a[q][p] = 0;
+  }
+  return a.map((r, i) => r[i]);
+}
+
+// ─── Bargmann phase test on K3 cliques ───
+function bargmannPhaseTest(V, d, n, mu, satTol=1e-8) {
+  const sat = Array.from({length: n}, () => new Set());
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      const ip = innerProduct(V, i, j, d);
+      const a = Math.sqrt(ip[0]*ip[0] + ip[1]*ip[1]);
+      if (mu - a < satTol) {
+        sat[i].add(j); sat[j].add(i);
+      }
+    }
+  }
+  const k3 = [];
+  for (let i = 0; i < n; i++) {
+    for (const j of sat[i]) {
+      if (j <= i) continue;
+      for (const k of sat[j]) {
+        if (k <= j) continue;
+        if (sat[i].has(k)) k3.push([i, j, k]);
+      }
+    }
+  }
+  const phases = [];
+  for (const [a, b, c] of k3) {
+    const ab = innerProduct(V, a, b, d);
+    const bc = innerProduct(V, b, c, d);
+    const ca = innerProduct(V, c, a, d);
+    const pr = ab[0]*bc[0] - ab[1]*bc[1], pi = ab[0]*bc[1] + ab[1]*bc[0];
+    const fr = pr*ca[0] - pi*ca[1], fi = pr*ca[1] + pi*ca[0];
+    phases.push(Math.atan2(fi, fr));
+  }
+  const rounded = phases.map(p => p.toFixed(6));
+  const unique = new Set(rounded);
+  const isDiscrete = (unique.size <= Math.max(5, Math.ceil(k3.length / 8))) && k3.length > 0;
+  return { k3Count: k3.length, phaseCount: phases.length, distinctPhases: unique.size, isDiscrete };
+}
+
+// ─── Parser ───
+function parsePacking(text, d_hint, n_hint) {
+  const floats = text.trim().split(/\s+/).map(Number).filter(x => !isNaN(x));
+  if (floats.length === 0) throw new Error("No numbers detected in input.");
+  let d = d_hint, n = n_hint;
+  if (!d || !n) {
+    const total = floats.length;
+    if (total % 2 !== 0) throw new Error(`Need even count (got ${total}). Format is 2·d·n floats.`);
+    const half = total / 2;
+    const candidates = [];
+    for (let dt = 2; dt <= 30; dt++) {
+      if (half % dt === 0) {
+        const nt = half / dt;
+        if (nt > dt && nt <= 400) candidates.push([dt, nt]);
+      }
+    }
+    if (candidates.length === 0) throw new Error(`Could not infer (d, n) from ${total} floats. Please specify both.`);
+    if (candidates.length > 1 && !d && !n) {
+      const list = candidates.map(([dt,nt]) => `(${dt},${nt})`).join(", ");
+      throw new Error(`Ambiguous (d, n) for ${total} floats. Candidates: ${list}. Please specify d and n in the fields above, or upload a file named dxn_xxx.txt for auto-detect.`);
+    }
+    [d, n] = candidates[0];
+  }
+  if (floats.length !== 2 * d * n) {
+    throw new Error(`Expected ${2*d*n} floats for (d=${d}, n=${n}). Got ${floats.length}.`);
+  }
+  const V = Array.from({length: d}, () => new Array(n));
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < d; k++) {
+      V[k][i] = [floats[i*d + k], floats[d*n + i*d + k]];
+    }
+  }
+  return { V, d, n };
+}
+
+// ─── SHA-256 hash of text input ───
+async function sha256(text) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN DIAGNOSTIC
+// ════════════════════════════════════════════════════════════
+function diagnose(V, d, n) {
+  // ─ Norms + field check + duplicate detection ─
+  const norms = new Float64Array(n);
+  let maxImag = 0;
+  for (let i = 0; i < n; i++) {
+    let s = 0;
+    for (let k = 0; k < d; k++) {
+      s += V[k][i][0]*V[k][i][0] + V[k][i][1]*V[k][i][1];
+      const ai = Math.abs(V[k][i][1]);
+      if (ai > maxImag) maxImag = ai;
+    }
+    norms[i] = Math.sqrt(s);
+  }
+  const normMin = Math.min(...norms), normMax = Math.max(...norms);
+  const isRealFrame = maxImag < 1e-12;
+  const warnings = [];
+  if (normMax - normMin > 1e-8) {
+    warnings.push(`Non-unit-norm vectors detected: norm range [${normMin.toFixed(10)}, ${normMax.toFixed(10)}]. Coherence is computed without re-normalisation; results may be off the GoS convention.`);
+  }
+
+  // Duplicate vector detection
+  const dups = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      let diff = 0;
+      for (let k = 0; k < d; k++) {
+        diff += Math.abs(V[k][i][0] - V[k][j][0]) + Math.abs(V[k][i][1] - V[k][j][1]);
+      }
+      if (diff < 1e-10) dups.push([i, j]);
+    }
+  }
+  if (dups.length > 0) {
+    const list = dups.slice(0, 5).map(([a,b]) => `v${a}≈v${b}`).join(', ');
+    warnings.push(`DUPLICATE VECTORS detected (${dups.length} pair${dups.length>1?'s':''}): ${list}${dups.length > 5 ? ', …' : ''}. Likely a submission error.`);
+  }
+
+  // ─ Five-kernel μ ─
+  const t1 = performance.now();
+  const muNaive = muKernelNaive(V, d, n);
+  const muKahan = muKernelKahan(V, d, n);
+  const muPair  = muKernelPairwise(V, d, n);
+  const muTri   = muKernelGramTri(V, d, n);
+  const muDD    = muKernelDD(V, d, n);
+  const muElapsed = performance.now() - t1;
+
+  const kernels = [
+    { name: 'Naive',                  value: muNaive },
+    { name: 'Kahan',                  value: muKahan },
+    { name: 'Pairwise',               value: muPair  },
+    { name: 'Gram-tri (reverse)',     value: muTri   },
+    { name: 'Double-double (TP+TS)',  value: muDD    }
+  ];
+  const mu = muDD;  // use highest-precision kernel as the consensus value
+
+  // ─ All pair coherences (using naive kernel for downstream consistency) ─
+  const nPairs = n * (n-1) / 2;
+  const absInner = new Float64Array(nPairs);
+  const pairIdx = new Array(nPairs);
+  let idx = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      const ip = innerProduct(V, i, j, d);
+      absInner[idx] = Math.sqrt(ip[0]*ip[0] + ip[1]*ip[1]);
+      pairIdx[idx] = [i, j];
+      idx++;
+    }
+  }
+
+  // ─ Welch ─
+  const welch = Math.sqrt((n - d) / (d * (n - 1)));
+  const muOverWelch = mu / welch;
+
+  // ─ Saturated pairs + cliff ─
+  const tol = 1e-8;
+  const sortedGaps = Array.from(absInner).map(v => mu - v).sort((a, b) => a - b);
+  let nSat = 0;
+  for (let i = 0; i < nPairs; i++) if (sortedGaps[i] < tol) nSat++;
+  const satFrac = nSat / nPairs * 100;
+  let cliff = null;
+  if (nSat > 0 && nSat < nPairs) {
+    cliff = sortedGaps[nSat-1] > 0 ? sortedGaps[nSat] / sortedGaps[nSat-1] : Infinity;
+  }
+
+  // ─ Frame operator ─
+  const S_re = Array.from({length: d}, () => new Float64Array(d));
+  const S_im = Array.from({length: d}, () => new Float64Array(d));
+  for (let a = 0; a < d; a++) {
+    for (let b = a; b < d; b++) {
+      let re = 0, im = 0;
+      for (let i = 0; i < n; i++) {
+        const va = V[a][i], vb = V[b][i];
+        re += va[0]*vb[0] + va[1]*vb[1];
+        im += va[1]*vb[0] - va[0]*vb[1];
+      }
+      S_re[a][b] = re; S_im[a][b] = im;
+      S_re[b][a] = re; S_im[b][a] = -im;
+    }
+  }
+  const frameEigs = hermitianEig(S_re, S_im, d);
+  const tightnessGap = frameEigs[d-1] - frameEigs[0];
+
+  // ─ kade_base ─
+  const cnk = binomial(n, d);
+  let kadeBase = null, worstT = null;
+  if (cnk <= 700000) {
+    kadeBase = Infinity;
+    for (const T of combinations(n, d)) {
+      const det = detGramSubset(V, T, d);
+      if (det < kadeBase) { kadeBase = det; worstT = T.slice(); }
+    }
+  }
+
+  // ─ Worst d-tuple morphology ─
+  let worstPairs = null, coupleRatio = null, kadeSpectralRatio = null;
+  if (worstT) {
+    worstPairs = [];
+    for (let a = 0; a < d; a++) {
+      for (let b = a+1; b < d; b++) {
+        const ip = innerProduct(V, worstT[a], worstT[b], d);
+        worstPairs.push({ i: worstT[a], j: worstT[b], coh: Math.hypot(ip[0], ip[1]) });
+      }
+    }
+    worstPairs.sort((x, y) => y.coh - x.coh);
+    const maxCoh = worstPairs[0].coh;
+    const medCoh = worstPairs[Math.floor(worstPairs.length / 2)].coh;
+    coupleRatio = medCoh > 0 ? maxCoh / medCoh : Infinity;
+    const T_re = Array.from({length: d}, () => new Float64Array(d));
+    const T_im = Array.from({length: d}, () => new Float64Array(d));
+    for (let a = 0; a < d; a++) {
+      for (let b = 0; b < d; b++) {
+        const ip = innerProduct(V, worstT[a], worstT[b], d);
+        T_re[a][b] = ip[0]; T_im[a][b] = ip[1];
+      }
+    }
+    const teigs = hermitianEig(T_re, T_im, d);
+    kadeSpectralRatio = teigs[d-1] / Math.max(teigs[0], 1e-300);
+  }
+
+  // ─ Welch det reference ─
+  const cw = welch;
+  const detWelch = (1 + (d-1)*cw) * Math.pow(1 - cw, d-1);
+  const kadeNorm = (kadeBase !== null && detWelch > 0) ? kadeBase / detWelch : null;
+
+  // ─ Bargmann ─
+  const bargmann = bargmannPhaseTest(V, d, n, mu, tol);
+
+  return {
+    V, d, n, nPairs,
+    mu, kernels, muElapsed,
+    welch, muOverWelch,
+    nSat, satFrac, cliff,
+    frameEigs, tightnessGap,
+    normMin, normMax,
+    isRealFrame, maxImag, dups,
+    kadeBase, kadeNorm, worstT, worstPairs, coupleRatio, kadeSpectralRatio,
+    bargmann, absInner, pairIdx,
+    warnings, cnk
+  };
+}
+
+// ─── Basin classification verdict ───
+function classifyBasin(r) {
+  const { muOverWelch, tightnessGap, satFrac, cliff, d, n } = r;
+  const isTight = tightnessGap < 1e-10;
+  if (isTight && muOverWelch < 1.001) {
+    return {
+      cls: 'Welch-saturated tight algebraic frame',
+      detail: `The frame operator is isotropic (eigenvalues equal to within 10⁻¹⁰) and μ matches the Welch bound. This is an equiangular tight frame or equivalent algebraic construction. Bargmann phases on K₃ cliques are expected to be discrete.`
+    };
+  }
+  if (muOverWelch <= 1.05 && satFrac > 75 && cliff !== null && cliff > 1e6) {
+    return {
+      cls: 'Near-Welch non-tight numerical basin',
+      detail: `The packing sits within ${((muOverWelch - 1)*100).toFixed(2)}% of the Welch bound with saturated-pair density ${satFrac.toFixed(2)}%. Saturated graph near-complete; cliff D₁ = ${cliff.toExponential(2)} indicates smooth-rigid basin. Configuration is approaching but not reaching ETF structure.`
+    };
+  }
+  if (isTight) {
+    return {
+      cls: 'Tight non-Welch frame',
+      detail: `Frame operator is isotropic but μ exceeds the Welch bound (μ/Welch = ${muOverWelch.toFixed(3)}). The frame is tight but not equiangular.`
+    };
+  }
+  return {
+    cls: 'Generic non-tight numerical basin',
+    detail: `Non-tight basin with μ/Welch = ${muOverWelch.toFixed(3)} and saturated fraction ${satFrac.toFixed(2)}%. Cliff D₁ = ${cliff !== null ? cliff.toExponential(2) : 'n/a'} ${cliff !== null && cliff > 1e6 ? 'indicates smooth-rigid basin' : (cliff !== null && cliff < 1e2 ? 'suggests basin not yet at smooth-max floor' : 'is intermediate')}.`
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// LIGHT DIAGNOSTIC (for holder comparison — no Bargmann, no vectors render)
+// ════════════════════════════════════════════════════════════
+function diagnoseLight(V, d, n) {
+  // Same as diagnose but skips Bargmann + worst pairs to keep it fast.
+  const muVal = muKernelDD(V, d, n);
+  const welch = Math.sqrt((n - d) / (d * (n - 1)));
+
+  const nPairs = n*(n-1)/2;
+  const absInner = new Float64Array(nPairs);
+  let idx = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      const ip = innerProduct(V, i, j, d);
+      absInner[idx++] = Math.hypot(ip[0], ip[1]);
+    }
+  }
+  const tol = 1e-8;
+  const sortedGaps = Array.from(absInner).map(v => muVal - v).sort((a, b) => a - b);
+  let nSat = 0;
+  for (let i = 0; i < nPairs; i++) if (sortedGaps[i] < tol) nSat++;
+  const satFrac = nSat / nPairs * 100;
+  let cliff = null;
+  if (nSat > 0 && nSat < nPairs) {
+    cliff = sortedGaps[nSat-1] > 0 ? sortedGaps[nSat] / sortedGaps[nSat-1] : Infinity;
+  }
+  const S_re = Array.from({length: d}, () => new Float64Array(d));
+  const S_im = Array.from({length: d}, () => new Float64Array(d));
+  for (let a = 0; a < d; a++) {
+    for (let b = a; b < d; b++) {
+      let re = 0, im = 0;
+      for (let i = 0; i < n; i++) {
+        const va = V[a][i], vb = V[b][i];
+        re += va[0]*vb[0] + va[1]*vb[1];
+        im += va[1]*vb[0] - va[0]*vb[1];
+      }
+      S_re[a][b] = re; S_im[a][b] = im;
+      S_re[b][a] = re; S_im[b][a] = -im;
+    }
+  }
+  const fE = hermitianEig(S_re, S_im, d);
+  const cnk = binomial(n, d);
+  let kadeBase = null;
+  if (cnk <= 700000) {
+    kadeBase = Infinity;
+    for (const T of combinations(n, d)) {
+      const det = detGramSubset(V, T, d);
+      if (det < kadeBase) kadeBase = det;
+    }
+  }
+  return {
+    mu: muVal, muOverWelch: muVal/welch,
+    satFrac, cliff, kadeBase,
+    tightnessGap: fE[d-1] - fE[0]
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════
+let lastResult = null;
+
+function copyLatex(label, value) {
+  const tex = `${label} &= ${value}`;
+  navigator.clipboard.writeText(tex).then(
+    () => setStatus(`LaTeX copied: ${tex}`, 'ok'),
+    () => setStatus('Clipboard copy failed', 'error')
+  );
+}
+
+function render(r) {
+  document.getElementById('verdict-class').innerHTML = `<span class="italic">${r.verdict_cls}</span>`;
+  document.getElementById('verdict-detail').textContent = r.verdict_detail;
+
+  // Warnings inside verdict
+  const wbox = document.getElementById('verdict-warnings');
+  if (r.warnings.length || r.isRealFrame) {
+    let html = '';
+    if (r.isRealFrame) {
+      html += `<div class="verdict-warning">⚠ Real-only frame: max |Im(v)| = ${r.maxImag.toExponential(2)}. Bargmann phases will be discrete on {0, π}.</div>`;
+    }
+    for (const w of r.warnings) {
+      html += `<div class="verdict-warning">⚠ ${w}</div>`;
+    }
+    wbox.innerHTML = html;
+    wbox.style.display = 'block';
+  } else {
+    wbox.style.display = 'none';
+  }
+
+  // Core metrics
+  const muStr = r.mu.toFixed(12);
+  const cliffStr = r.cliff !== null ? r.cliff.toExponential(3) : '—';
+  const kadeBaseStr = r.kadeBase !== null ? r.kadeBase.toExponential(3) : 'd>limit';
+  const tightStr = r.tightnessGap.toExponential(3);
+
+  const metrics = [
+    { label: 'd × n', value: `${r.d} × ${r.n}`, context: `${r.nPairs} pairs · C(n,d) = ${r.cnk.toLocaleString()}` },
+    { label: 'coherence μ', value: muStr, context: 'consensus across 5 kernels', highlight: true, latex: ['\\mu', muStr] },
+    { label: 'μ / Welch', value: r.muOverWelch.toFixed(5), context: r.muOverWelch <= 1.05 ? 'near Welch floor' : 'over Welch', latex: ['\\mu/\\mathrm{Welch}', r.muOverWelch.toFixed(5)] },
+    { label: 'Welch bound', value: r.welch.toFixed(8), context: '√((n−d)/(d(n−1)))', latex: ['\\mathrm{Welch}', r.welch.toFixed(8)] },
+    { label: 'saturated %', value: fmtPct(r.satFrac), context: `${r.nSat} of ${r.nPairs} pairs` },
+    { label: 'cliff D₁', value: cliffStr, context: 'gap[n_sat] / gap[n_sat−1]', latex: ['D_1', cliffStr] },
+    { label: 'kade base', value: kadeBaseStr, context: 'min |det Gᵀ|, |T|=d', latex: ['\\mathrm{kade\\_base}', kadeBaseStr] },
+    { label: 'tightness', value: tightStr, context: 'λ_max − λ_min(VV*)', latex: ['\\Delta\\lambda(VV^*)', tightStr] }
+  ];
+
+  document.getElementById('metrics-grid').innerHTML = metrics.map((m, idx) => `
+    <div class="metric ${m.highlight ? 'highlight' : ''}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value">${m.value}</div>
+      <div class="metric-context">${m.context}</div>
+      ${m.latex ? `<button class="latex-btn" title="Copy as LaTeX" onclick="copyLatex('${m.latex[0]}', '${m.latex[1]}')">📋 TeX</button>` : ''}
+    </div>
+  `).join('');
+
+  // Five-kernel table
+  const muMin = Math.min(...r.kernels.map(k => k.value));
+  const muMax = Math.max(...r.kernels.map(k => k.value));
+  const spread = muMax - muMin;
+  const consensus = r.mu;
+  const ok = spread < 1e-12;
+  document.getElementById('kernels-content').innerHTML = `
+    <table class="kernels-table">
+      <thead><tr><th></th><th>kernel</th><th>μ (16 digits)</th><th>Δ vs consensus</th></tr></thead>
+      <tbody>
+        ${r.kernels.map((k, idx) => {
+          const delta = k.value - consensus;
+          const cls = Math.abs(delta) < 1e-12 ? 'delta-ok' : 'delta-warn';
+          return `<tr><td>${idx+1}.</td><td>${k.name}</td><td>${k.value.toFixed(16)}</td><td class="${cls}">${delta === 0 ? '0' : delta.toExponential(2)}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top: 14px; font-family: 'Fraunces', serif; font-size: 13px; color: var(--ink-soft);">
+      Maximum disagreement: <span class="mono" style="color: ${ok ? 'var(--good)' : 'var(--bad)'}">${spread.toExponential(3)}</span>
+      · ${ok ? '<em>kernels agree at 12+ decimals — float64 internally consistent</em>' : '<em>kernels disagree beyond 1e-12 — quad-precision verification recommended</em>'}
+      · ${r.muElapsed.toFixed(0)} ms total
+    </div>
+  `;
+
+  // Barometer
+  renderBarometer(r);
+
+  // Saturated graph density
+  document.getElementById('sat-density').innerHTML = `
+    <div class="bar-row">
+      <div class="bar-label">saturated</div>
+      <div class="bar-track"><div class="bar-fill accent" style="width: ${r.satFrac}%"></div></div>
+      <div class="bar-value">${r.satFrac.toFixed(2)}%</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">unsaturated</div>
+      <div class="bar-track"><div class="bar-fill" style="width: ${100-r.satFrac}%"></div></div>
+      <div class="bar-value">${(100-r.satFrac).toFixed(2)}%</div>
+    </div>
+  `;
+
+  // Histogram
+  const bins = 20;
+  const hist = new Array(bins).fill(0);
+  for (const v of r.absInner) {
+    const b = Math.min(bins-1, Math.floor((v / r.mu) * bins));
+    hist[b]++;
+  }
+  const maxHist = Math.max(...hist);
+  document.getElementById('coh-histogram').innerHTML = `
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); margin-bottom: 6px;">
+      |⟨vᵢ, vⱼ⟩| distribution across ${r.nPairs} pairs · 20 bins · 0 → μ
+    </div>
+    ${hist.map((c, i) => {
+      const w = c / maxHist * 100;
+      const lo = (i / bins * r.mu).toFixed(3);
+      const isLast = i === bins - 1;
+      return `<div class="bar-row" style="grid-template-columns: 80px 1fr 60px;">
+        <div class="bar-label" style="font-size: 10px;">${lo}${isLast ? ' →μ' : ''}</div>
+        <div class="bar-track" style="height: 10px;"><div class="bar-fill ${isLast ? 'accent' : ''}" style="width: ${w}%"></div></div>
+        <div class="bar-value" style="font-size: 10px;">${c}</div>
+      </div>`;
+    }).join('')}
+  `;
+
+  // Worst d-tuple
+  if (r.worstT) {
+    const dominantPair = r.worstPairs[0];
+    const dominantSet = new Set([dominantPair.i, dominantPair.j]);
+    document.getElementById('worst-tuple-display').innerHTML = r.worstT.map(v =>
+      `<span class="vertex ${dominantSet.has(v) ? 'dominant' : ''}">v${v}</span>`
+    ).join('');
+    document.getElementById('worst-det').textContent = `|det Gᵀ| = ${r.kadeBase.toExponential(6)} · spectral ratio λ_max/λ_min = ${r.kadeSpectralRatio.toExponential(3)}`;
+    document.getElementById('worst-pairs').innerHTML = `
+      <table>
+        <thead><tr><th>pair</th><th>|⟨vᵢ, vⱼ⟩|</th><th>vs μ</th></tr></thead>
+        <tbody>${r.worstPairs.map(p => `
+          <tr><td>(v${p.i}, v${p.j})</td><td>${p.coh.toFixed(8)}</td><td>${(p.coh/r.mu*100).toFixed(2)}%</td></tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+    let coupleInterp = '';
+    if (r.coupleRatio < 1.15) coupleInterp = 'uniform — all pairs within T at comparable coherence';
+    else if (r.coupleRatio < 1.5) coupleInterp = 'moderate dominance — leading pair plus weaker companions';
+    else coupleInterp = 'strong dominance — couple + witnesses morphology';
+    document.getElementById('couple-ratio').innerHTML = `
+      <span class="mono">${r.coupleRatio.toFixed(4)}</span> · max/median ·
+      <em style="color: var(--ink-soft); font-style: italic;">${coupleInterp}</em>
+    `;
+  } else {
+    document.getElementById('worst-tuple-display').innerHTML = `<em style="color: var(--ink-faint);">C(n, d) = ${r.cnk.toLocaleString()} exceeds the 700k subset limit — worst d-tuple skipped.</em>`;
+    document.getElementById('worst-det').textContent = '';
+    document.getElementById('worst-pairs').innerHTML = '';
+    document.getElementById('couple-ratio').innerHTML = '';
+  }
+
+  // Frame statistics
+  document.getElementById('frame-eigs').innerHTML = `
+    <span class="mono">eigenvalues: [${r.frameEigs.map(e => e.toFixed(6)).join(', ')}]</span><br>
+    <em style="font-size: 12px; color: var(--ink-soft);">expected (tight): ${(r.n/r.d).toFixed(4)} · trace = ${r.frameEigs.reduce((a,b)=>a+b,0).toFixed(6)}</em>
+  `;
+  const tightnessClass = r.tightnessGap < 1e-10 ? 'TIGHT' : (r.tightnessGap < 0.1 ? 'NEAR-TIGHT' : 'NON-TIGHT');
+  document.getElementById('tightness-gap').innerHTML = `
+    <span class="mono">${r.tightnessGap.toExponential(4)}</span> · <strong>${tightnessClass}</strong>
+  `;
+  document.getElementById('norm-range').textContent = `[${r.normMin.toFixed(14)}, ${r.normMax.toFixed(14)}]`;
+  document.getElementById('field-type').innerHTML = r.isRealFrame
+    ? `<strong style="color: var(--accent);">REAL frame</strong> — all Im(v) below 10⁻¹². max |Im(v)| = ${r.maxImag.toExponential(2)}.`
+    : `<strong>Complex frame</strong> — max |Im(v)| = ${r.maxImag.toExponential(3)}.`;
+
+  // Bargmann
+  const b = r.bargmann;
+  if (b.k3Count === 0) {
+    document.getElementById('bargmann-content').innerHTML = `
+      <em style="color: var(--ink-soft);">No K₃ cliques in saturated graph — Bargmann test not applicable.</em>
+    `;
+  } else {
+    document.getElementById('bargmann-content').innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-label">K₃ cliques</div>
+        <div class="detail-content mono">${b.k3Count}</div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Distinct phases</div>
+        <div class="detail-content mono">${b.distinctPhases} (rounded to 6 decimals)</div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label">Verdict</div>
+        <div class="detail-content"><strong style="color: ${b.isDiscrete ? 'var(--accent)' : 'var(--ink)'};">${b.isDiscrete ? 'DISCRETE' : 'CONTINUOUS'}</strong>
+          <em style="color: var(--ink-soft); font-size: 13px;">
+            ${b.isDiscrete
+              ? 'Phase concentration on few discrete values — signature of algebraic (ETF-type) or real-frame structure.'
+              : 'Phase values spread continuously — signature of a numerically optimised non-algebraic packing.'}
+          </em>
+        </div>
+      </div>
+    `;
+  }
+
+  // Bounds
+  const orthoValid = r.n > r.d * r.d;
+  const ortho = orthoValid ? 1/Math.sqrt(r.d) : null;
+  const lev2Valid = r.n > r.d*(r.d+1)/2;
+  const lev2 = lev2Valid ? Math.sqrt((2*r.n - r.d*r.d - r.d) / ((r.n-1)*(r.d+2))) : null;
+
+  // Active bound = max of those valid (and ≤ μ; if exceeds μ, packing violates the bound — display anyway)
+  const validBounds = [['Welch–Rankin', r.welch, true]];
+  if (orthoValid) validBounds.push(['Orthoplex', ortho, true]);
+  if (lev2Valid) validBounds.push(['Levenstein-2', lev2, true]);
+  const activeBound = validBounds.reduce((a, b) => (b[1] > a[1] ? b : a));
+
+  document.getElementById('bounds-table').innerHTML = `
+    <thead><tr><th>bound</th><th>value</th><th>μ / bound</th><th>validity</th><th></th></tr></thead>
+    <tbody>
+      <tr ${activeBound[0]==='Welch–Rankin' ? 'class="ok"' : ''}>
+        <td>Welch–Rankin</td><td>${r.welch.toFixed(8)}</td><td>${r.muOverWelch.toFixed(4)}</td>
+        <td>always valid</td>
+        <td>${activeBound[0]==='Welch–Rankin' ? '← <strong>active</strong>' : ''}</td>
+      </tr>
+      <tr ${activeBound[0]==='Orthoplex' ? 'class="ok"' : ''}>
+        <td>Orthoplex</td><td>${ortho !== null ? ortho.toFixed(8) : '—'}</td>
+        <td>${ortho !== null ? (r.mu/ortho).toFixed(4) : '—'}</td>
+        <td>${orthoValid ? 'valid (n > d²)' : `n=${r.n} ≤ d²=${r.d*r.d}`}</td>
+        <td>${activeBound[0]==='Orthoplex' ? '← <strong>active</strong>' : ''}</td>
+      </tr>
+      <tr ${activeBound[0]==='Levenstein-2' ? 'class="ok"' : ''}>
+        <td>Levenstein-2</td><td>${lev2 !== null ? lev2.toFixed(8) : '—'}</td>
+        <td>${lev2 !== null ? (r.mu/lev2).toFixed(4) : '—'}</td>
+        <td>${lev2Valid ? 'valid (n > d(d+1)/2)' : `n=${r.n} ≤ d(d+1)/2=${r.d*(r.d+1)/2}`}</td>
+        <td>${activeBound[0]==='Levenstein-2' ? '← <strong>active</strong>' : ''}</td>
+      </tr>
+    </tbody>
+  `;
+  r._activeBound = activeBound;  // store for barometer
+
+  // Vectors table
+  const vRows = [];
+  for (let i = 0; i < r.n; i++) {
+    const comps = [];
+    for (let k = 0; k < r.d; k++) {
+      const c = r.V[k][i];
+      const im_sign = c[1] >= 0 ? '+' : '−';
+      comps.push(`${c[0].toFixed(16)} ${im_sign} ${Math.abs(c[1]).toFixed(16)}i`);
+    }
+    vRows.push(`<tr><td style="font-weight:500; color:var(--accent);">v${i}</td><td>${comps.join('<br>')}</td></tr>`);
+  }
+  document.getElementById('vectors-table').innerHTML = `
+    <table>
+      <thead><tr><th style="width:50px;">idx</th><th>components</th></tr></thead>
+      <tbody>${vRows.join('')}</tbody>
+    </table>
+  `;
+
+  // Try to fetch GoS holder for comparison
+  tryHolderCompare(r);
+}
+
+function renderBarometer(r) {
+  // Welch always on left. Right anchor is 1.0 or 1.2·μ, whichever is larger.
+  const maxX = Math.max(1.0, r.mu * 1.2, (r._activeBound ? r._activeBound[1] : r.welch) * 1.5);
+  const minX = 0;
+  const xPct = v => ((v - minX) / (maxX - minX)) * 100;
+
+  const lb = r._activeBound ? r._activeBound[1] : r.welch;
+  const lbLabel = r._activeBound ? r._activeBound[0] : 'Welch–Rankin';
+
+  let markers = `
+    <div class="barometer-marker welch" style="left: ${xPct(r.welch)}%"></div>
+    <div class="barometer-label welch" style="left: ${xPct(r.welch)}%">Welch</div>
+    <div class="barometer-value" style="left: ${xPct(r.welch)}%">${r.welch.toFixed(4)}</div>
+  `;
+  if (lbLabel !== 'Welch–Rankin') {
+    markers += `
+      <div class="barometer-marker lb" style="left: ${xPct(lb)}%"></div>
+      <div class="barometer-label lb" style="left: ${xPct(lb)}%; top: -38px;">${lbLabel}</div>
+      <div class="barometer-value" style="left: ${xPct(lb)}%; bottom: -38px;">${lb.toFixed(4)}</div>
+    `;
+  }
+  markers += `
+    <div class="barometer-marker yours" style="left: ${xPct(r.mu)}%"></div>
+    <div class="barometer-label yours" style="left: ${xPct(r.mu)}%; top: -38px;">YOUR μ</div>
+    <div class="barometer-value" style="left: ${xPct(r.mu)}%; bottom: -38px;">${r.mu.toFixed(6)}</div>
+  `;
+
+  document.getElementById('barometer-content').innerHTML = `
+    <div class="barometer-wrap">
+      <div class="barometer">${markers}</div>
+    </div>
+    <div style="font-family: 'Fraunces', serif; font-size: 13px; color: var(--ink-soft); margin-top: 32px;">
+      Range: ${minX.toFixed(2)} → ${maxX.toFixed(2)}. Welch–Rankin is the universal lower bound; the active bound is the largest of those that apply to (d, n). Your μ sits to the right of all valid lower bounds (it must, mathematically).
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════
+// GoS HOLDER COMPARISON
+// ════════════════════════════════════════════════════════════
+async function tryHolderCompare(r) {
+  const section = document.getElementById('holder-compare-section');
+  const content = document.getElementById('compare-content');
+  // Find holder in screener data
+  const cell = SCREENER_DATA.find(c => c.d === r.d && c.n === r.n);
+  if (!cell) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  content.innerHTML = `
+    <div class="compare-status loading">Fetching holder packing…</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">
+      ${r.d}×${r.n}_${cell.holder}.txt from Game of Sloanes upstream
+    </div>
+  `;
+
+  const url = `https://raw.githubusercontent.com/gnikylime/GameofSloanes/main/CurrentBestPackings/${r.d}x${r.n}_${cell.holder}.txt`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+
+    // Self-upload detection: compare SHA-256 of normalized text
+    const holderHash = await sha256(text);
+    const isSelf = (holderHash === r._hash);
+
+    const { V: V2, d: d2, n: n2 } = parsePacking(text, r.d, r.n);
+
+    // Show compute-in-progress before the (potentially slow) diagnostic
+    content.innerHTML = `
+      <div class="compare-status loading">Computing holder diagnostic (C(${n2},${d2}) = ${binomial(n2,d2).toLocaleString()} subsets)…</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">
+        Holder file fetched (${text.length} chars). Running same diagnostic on holder packing for byte-exact comparison.
+      </div>
+    `;
+    // Yield to UI thread so the message renders
+    await new Promise(resolve => setTimeout(resolve, 30));
+
+    const h = diagnoseLight(V2, d2, n2);
+
+    // Compare metrics
+    const mu_delta = r.mu - h.mu;
+    let status, label;
+    if (isSelf) { status = 'ties'; label = '◇ IDENTICAL — you uploaded the current holder packing'; }
+    else if (mu_delta < -5e-9) { status = 'beats'; label = '🟢 BEATS HOLDER'; }
+    else if (mu_delta > 5e-9) { status = 'worse'; label = '🔴 WORSE THAN HOLDER'; }
+    else { status = 'ties'; label = '🟡 TIES HOLDER (within 5e-9)'; }
+
+    content.innerHTML = `
+      <div class="compare-status ${status}">${label}</div>
+      <table>
+        <thead><tr><th>Metric</th><th>Your packing</th><th>Holder ${cell.holder}</th><th>Δ (yours − holder)</th></tr></thead>
+        <tbody>
+          <tr><td>μ (coherence)</td><td>${r.mu.toFixed(12)}</td><td>${h.mu.toFixed(12)}</td><td class="${status === 'beats' ? 'delta-ok' : (status === 'worse' ? 'delta-warn' : '')}">${mu_delta.toExponential(3)}</td></tr>
+          <tr><td>μ / Welch</td><td>${r.muOverWelch.toFixed(6)}</td><td>${h.muOverWelch.toFixed(6)}</td><td>${(r.muOverWelch - h.muOverWelch).toExponential(3)}</td></tr>
+          <tr><td>saturated %</td><td>${r.satFrac.toFixed(2)}</td><td>${h.satFrac.toFixed(2)}</td><td>${(r.satFrac - h.satFrac).toFixed(3)}</td></tr>
+          <tr><td>cliff D₁</td><td>${r.cliff !== null ? r.cliff.toExponential(3) : '—'}</td><td>${h.cliff !== null ? h.cliff.toExponential(3) : '—'}</td><td>—</td></tr>
+          <tr><td>kade base</td><td>${r.kadeBase !== null ? r.kadeBase.toExponential(3) : '—'}</td><td>${h.kadeBase !== null ? h.kadeBase.toExponential(3) : '—'}</td><td>—</td></tr>
+          <tr><td>tightness gap</td><td>${r.tightnessGap.toExponential(3)}</td><td>${h.tightnessGap.toExponential(3)}</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <div style="font-family: 'Fraunces', serif; font-size: 12px; color: var(--ink-soft); margin-top: 14px; font-style: italic;">
+        Holder file: <a href="${url}" target="_blank" style="color: var(--accent);">${r.d}x${r.n}_${cell.holder}.txt</a> · published μ on leaderboard: ${cell.mu.toFixed(8)} · holder code legend in About tab. Float64 only — see header disclaimer.
+      </div>
+    `;
+  } catch (e) {
+    content.innerHTML = `
+      <div class="compare-status error">⚠ Holder fetch failed</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);">
+        ${e.message} — likely a network or CORS issue. The leaderboard says μ = ${cell.mu.toFixed(8)} (${cell.holder}) for this cell. Try Load from URL to compare manually.
+      </div>
+    `;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// Handlers
+// ════════════════════════════════════════════════════════════
+function setStatus(text, cls='') {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.className = 'input-status' + (cls ? ' ' + cls : '');
+}
+
+function analyze() {
+  try {
+    setStatus('Parsing input…');
+    const text = document.getElementById('packing-input').value;
+    if (!text.trim()) { setStatus('Input is empty.', 'error'); return; }
+    const d_hint = parseInt(document.getElementById('d-input').value) || null;
+    const n_hint = parseInt(document.getElementById('n-input').value) || null;
+    const { V, d, n } = parsePacking(text, d_hint, n_hint);
+    if (!d_hint) document.getElementById('d-input').value = d;
+    if (!n_hint) document.getElementById('n-input').value = n;
+
+    setStatus(`Computing 5-kernel μ + diagnostic for (d=${d}, n=${n}) · C(n,d) = ${binomial(n, d).toLocaleString()}…`);
+
+    setTimeout(async () => {
+      try {
+        const r = diagnose(V, d, n);
+        r._inputText = text;
+        r._hash = await sha256(text);
+        const cls = classifyBasin(r);
+        r.verdict_cls = cls.cls;
+        r.verdict_detail = cls.detail;
+        lastResult = r;
+        render(r);
+        document.getElementById('output').classList.add('active');
+        setStatus(`Done · μ = ${r.mu.toFixed(8)} · class: ${cls.cls} · SHA-256 ${r._hash.slice(0, 12)}`, 'ok');
+        document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch(e) {
+        setStatus('Error: ' + e.message, 'error');
+        console.error(e);
+      }
+    }, 50);
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'error');
+  }
+}
+
+function resetAll() {
+  document.getElementById('packing-input').value = '';
+  document.getElementById('d-input').value = '';
+  document.getElementById('n-input').value = '';
+  document.getElementById('output').classList.remove('active');
+  lastResult = null;
+  setStatus('Ready · waiting for input');
+}
+
+function shareTool() {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: 'KADE Packing Diagnostic v3', url }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(
+      () => setStatus('URL copied to clipboard', 'ok'),
+      () => setStatus('Unable to share — copy URL from address bar', 'error')
+    );
+  }
+}
+
+function exportReport() {
+  if (!lastResult) { setStatus('No analysis to export yet. Click Analyze first.', 'error'); return; }
+  const r = lastResult;
+  const report = {
+    tool: 'KADE Packing Diagnostic v3',
+    timestamp: new Date().toISOString(),
+    packing_sha256: r._hash,
+    d: r.d, n: r.n, nPairs: r.nPairs,
+    kernels_floats64: r.kernels.map(k => ({ name: k.name, mu: k.value })),
+    kernel_max_spread: Math.max(...r.kernels.map(k => k.value)) - Math.min(...r.kernels.map(k => k.value)),
+    mu_consensus: r.mu,
+    welch: r.welch,
+    mu_over_welch: r.muOverWelch,
+    saturated_count: r.nSat,
+    saturated_fraction: r.satFrac,
+    cliff_D1: r.cliff,
+    frame_eigs: Array.from(r.frameEigs),
+    tightness_gap: r.tightnessGap,
+    norm_min: r.normMin, norm_max: r.normMax,
+    is_real_frame: r.isRealFrame, max_imag: r.maxImag,
+    duplicate_vectors: r.dups,
+    kade_base: r.kadeBase,
+    kade_norm: r.kadeNorm,
+    worst_d_tuple: r.worstT,
+    kade_spectral_ratio: r.kadeSpectralRatio,
+    kade_couple_ratio: r.coupleRatio,
+    bargmann: { k3_count: r.bargmann.k3Count, distinct_phases: r.bargmann.distinctPhases, is_discrete: r.bargmann.isDiscrete },
+    verdict_class: r.verdict_cls,
+    warnings: r.warnings,
+    disclaimer: 'Float64 only. Does NOT guarantee 8th-decimal byte-exact for Game of Sloanes record submissions. Quad-precision verification (gcc __float128 or Python mpmath ≥ 30 digits) is required for records.'
+  };
+  const json = JSON.stringify(report, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `kade_diagnostic_${r.d}x${r.n}_${r._hash.slice(0, 8)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setStatus(`JSON report exported · ${a.download}`, 'ok');
+}
+
+// ─── File upload with filename auto-detect (d, n) ───
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const m = file.name.match(/^(\d+)x(\d+)_/);
+  if (m) {
+    document.getElementById('d-input').value = parseInt(m[1]);
+    document.getElementById('n-input').value = parseInt(m[2]);
+  }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('packing-input').value = ev.target.result;
+    const dnInfo = m ? ` · auto-detected d=${m[1]}, n=${m[2]}` : '';
+    setStatus(`Loaded ${file.name} (${file.size} bytes)${dnInfo}`, 'ok');
+  };
+  reader.onerror = () => setStatus('File read error.', 'error');
+  reader.readAsText(file);
+});
+
+// ─── Load from URL ───
+async function loadFromURL() {
+  const url = prompt('Paste raw URL of packing .txt file:\n\nExample: https://raw.githubusercontent.com/gnikylime/GameofSloanes/main/CurrentBestPackings/3x14_dgm.txt');
+  if (!url) return;
+  try {
+    setStatus('Fetching from URL…');
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const text = await r.text();
+    document.getElementById('packing-input').value = text;
+    const fname = url.split('/').pop();
+    const m = fname.match(/^(\d+)x(\d+)_/);
+    if (m) {
+      document.getElementById('d-input').value = parseInt(m[1]);
+      document.getElementById('n-input').value = parseInt(m[2]);
+    }
+    const dnInfo = m ? ` · auto-detected d=${m[1]}, n=${m[2]}` : '';
+    setStatus(`Loaded from URL: ${fname} (${text.length} chars)${dnInfo}`, 'ok');
+  } catch(e) {
+    setStatus('URL fetch failed: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('packing-input').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); analyze(); }
+});
+
+// ════════════════════════════════════════════════════════════
+// SCREENER DATA — byte-exact from
+// https://github.com/gnikylime/GameofSloanes commit 2026-04-21
+// No values invented; subset of full leaderboard for browsing.
+// ════════════════════════════════════════════════════════════
+const SCREENER_DATA = [
+  { d: 2, n: 14, mu: 0.88429359, lb: 0.85714286, holder: 'njas', mark: '○' },
+  { d: 2, n: 15, mu: 0.89235808, lb: 0.86666667, holder: 'njas', mark: '' },
+  { d: 3, n: 13, mu: 0.62214387, lb: 0.59160798, holder: 'dgm', mark: '' },
+  { d: 3, n: 14, mu: 0.63763052, lb: 0.60302269, holder: 'dgm', mark: '' },
+  { d: 3, n: 15, mu: 0.64038820, lb: 0.61237244, holder: 'JJ', mark: '' },
+  { d: 3, n: 16, mu: 0.64775448, lb: 0.62017367, holder: 'hlc', mark: '' },
+  { d: 3, n: 17, mu: 0.65436636, lb: 0.62678317, holder: 'JJ', mark: '' },
+  { d: 3, n: 18, mu: 0.66295789, lb: 0.63245553, holder: 'hlc', mark: '' },
+  { d: 3, n: 19, mu: 0.67647322, lb: 0.63737744, holder: 'hlc', mark: '' },
+  { d: 3, n: 20, mu: 0.68646389, lb: 0.64168895, holder: 'hlc', mark: '' },
+  { d: 4, n: 21, mu: 0.53721512, lb: 0.50874702, holder: 'hlc', mark: '' },
+  { d: 4, n: 22, mu: 0.54543658, lb: 0.51639778, holder: 'hlc', mark: '' },
+  { d: 4, n: 23, mu: 0.55046239, lb: 0.52314836, holder: 'hlc', mark: '' },
+  { d: 4, n: 24, mu: 0.55701604, lb: 0.52915026, holder: 'hlc', mark: '' },
+  { d: 4, n: 48, mu: 0.64342772, lb: 0.58775381, holder: 'hlc', mark: '' },
+  { d: 4, n: 49, mu: 0.64632850, lb: 0.58878406, holder: 'hlc', mark: '' },
+  { d: 4, n: 64, mu: 0.68716020, lb: 0.60000000, holder: 'hlc', mark: '' },
+  { d: 5, n: 13, mu: 0.36760232, lb: 0.36514837, holder: 'JJ', mark: '' },
+  { d: 5, n: 50, mu: 0.55173030, lb: 0.50917508, holder: 'hlc', mark: '' },
+  { d: 6, n: 13, mu: 0.31182456, lb: 0.31180478, holder: 'hlc', mark: '' },
+  { d: 6, n: 49, mu: 0.46590261, lb: 0.43133109, holder: 'jrr', mark: '' },
+  { d: 7, n: 14, mu: 0.27735010, lb: 0.27735010, holder: 'etf', mark: '○' },
+  { d: 7, n: 15, mu: 0.28571429, lb: 0.28571429, holder: 'etf', mark: '○' },
+  { d: 7, n: 25, mu: 0.33247138, lb: 0.32732684, holder: 'hlc', mark: '' },
+  { d: 7, n: 26, mu: 0.33315439, lb: 0.32950179, holder: 'hlc', mark: '' },
+  { d: 7, n: 28, mu: 0.33333333, lb: 0.33333333, holder: 'etf', mark: '○' },
+  { d: 7, n: 49, mu: 0.35355339, lb: 0.35355339, holder: 'etf', mark: '○' }
+];
+
+function renderScreener() {
+  const data = SCREENER_DATA.map(r => ({ ...r, gap: r.mu - r.lb }));
+  data.sort((a, b) => a.d - b.d || a.n - b.n);
+  document.getElementById('screener-tbody').innerHTML = data.map(r => `
+    <tr>
+      <td class="cell-name">${r.d}</td>
+      <td class="cell-name">${r.n}</td>
+      <td>${r.mu.toFixed(8)}</td>
+      <td>${r.lb.toFixed(8)}</td>
+      <td>${r.gap.toExponential(2)}</td>
+      <td>${r.holder}</td>
+      <td style="text-align: center; font-size: 14px;">${r.mark}</td>
+      <td><a href="https://github.com/gnikylime/GameofSloanes/blob/main/CurrentBestPackings/${r.d}x${r.n}_${r.holder}.txt" target="_blank" style="color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent);">${r.d}x${r.n}_${r.holder}.txt</a></td>
+    </tr>
+  `).join('');
+}
+
+let screenerSortKey = 'd', screenerSortAsc = true;
+document.querySelectorAll('.screener-table th[data-key]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if (screenerSortKey === key) screenerSortAsc = !screenerSortAsc;
+    else { screenerSortKey = key; screenerSortAsc = true; }
+    const data = SCREENER_DATA.map(r => ({ ...r, gap: r.mu - r.lb }));
+    data.sort((a, b) => {
+      let av = a[key], bv = b[key];
+      if (typeof av === 'number') return screenerSortAsc ? av - bv : bv - av;
+      return screenerSortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+    document.getElementById('screener-tbody').innerHTML = data.map(r => `
+      <tr>
+        <td class="cell-name">${r.d}</td>
+        <td class="cell-name">${r.n}</td>
+        <td>${r.mu.toFixed(8)}</td>
+        <td>${r.lb.toFixed(8)}</td>
+        <td>${r.gap.toExponential(2)}</td>
+        <td>${r.holder}</td>
+        <td style="text-align: center; font-size: 14px;">${r.mark}</td>
+        <td><a href="https://github.com/gnikylime/GameofSloanes/blob/main/CurrentBestPackings/${r.d}x${r.n}_${r.holder}.txt" target="_blank" style="color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent);">${r.d}x${r.n}_${r.holder}.txt</a></td>
+      </tr>
+    `).join('');
+  });
+});
+
+// ─── Check upstream leaderboard (live fetch hint) ───
+async function checkLiveLeaderboard() {
+  const banner = document.getElementById('screener-banner');
+  const text = document.getElementById('screener-banner-text');
+  banner.className = 'screener-banner';
+  text.textContent = 'Fetching upstream README…';
+  try {
+    const resp = await fetch('https://raw.githubusercontent.com/gnikylime/GameofSloanes/main/README.md');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const md = await resp.text();
+    // Extract "Last updated:" line
+    const m = md.match(/Last updated:\s*([^\n]+)/i);
+    const upstreamDate = m ? m[1].trim() : 'unknown';
+    if (upstreamDate.includes('2026-04-21')) {
+      banner.className = 'screener-banner ok';
+      text.innerHTML = `✓ Upstream README still dated <strong>${upstreamDate}</strong> — snapshot is current.`;
+    } else {
+      banner.className = 'screener-banner warn';
+      text.innerHTML = `⚠ Upstream README dated <strong>${upstreamDate}</strong>; this snapshot is dated 2026-04-21. The leaderboard may have changed since the snapshot — visit the repo for the latest data.`;
+    }
+  } catch (e) {
+    banner.className = 'screener-banner';
+    text.innerHTML = `Upstream check failed: ${e.message}. The static snapshot remains the authoritative reference inside this HTML.`;
+  }
+}
+
+renderScreener();
+</script>
+</body>
+</html>
