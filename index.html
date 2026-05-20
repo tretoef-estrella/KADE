@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KADE Packing Diagnostic · v3</title>
+<title>KADE Packing Diagnostic · v5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -660,7 +660,7 @@
 <!-- ──── HEADER ──── -->
 <header>
   <div class="title-block">
-    <div class="meta">Grassmannian Frame Diagnostic · v3</div>
+    <div class="meta">Grassmannian Frame Diagnostic · v5</div>
     <h1>KADE <span class="italic">Packing Diagnostic</span></h1>
   </div>
   <div class="header-right">
@@ -726,10 +726,15 @@
       </div>
       <div></div>
       <div class="file-upload">
+        <button class="from-url-btn" onclick="pasteFromClipboard()">Paste from clipboard</button>
         <button class="from-url-btn" onclick="loadFromURL()">Load from URL</button>
         <input type="file" id="file-input" accept=".txt,.dat">
         <label for="file-input">Upload .txt</label>
       </div>
+    </div>
+
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; margin-top: 8px;">
+      ↓ paste packing here · or use any button above
     </div>
 
     <textarea id="packing-input" placeholder="Paste 2·d·n floats here — one per line, real block first, imaginary block second.
@@ -744,6 +749,8 @@ Filename hint: if your file is named like '3x14_xxx.txt', the (d,n) values are a
         <button class="btn" onclick="resetAll()">Reset</button>
         <button class="btn btn-accent" onclick="analyze()">Analyze →</button>
         <button class="btn" onclick="exportReport()">Export JSON</button>
+        <button class="btn" onclick="copyResults()">Copy results</button>
+        <button class="btn" onclick="shareResults()">Share results</button>
       </div>
     </div>
   </div>
@@ -821,6 +828,10 @@ Filename hint: if your file is named like '3x14_xxx.txt', the (d,n) values are a
       <div class="detail-grid">
         <div class="detail-label">Internal pairs</div>
         <div class="detail-content" id="worst-pairs"></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-label"></div>
+        <div class="detail-content" style="font-family: 'Fraunces', serif; font-style: italic; font-size: 12px; color: var(--ink-soft);" id="internal-pairs-note"></div>
       </div>
       <div class="detail-grid">
         <div class="detail-label">Couple ratio</div>
@@ -1110,7 +1121,7 @@ Filename hint: if your file is named like '3x14_xxx.txt', the (d,n) values are a
 
 <!-- ──── FOOTER ──── -->
 <footer>
-  <div>KADE PACKING DIAGNOSTIC · v3 · IEEE 754 FLOAT64</div>
+  <div>KADE PACKING DIAGNOSTIC · v5 · IEEE 754 FLOAT64</div>
   <div class="author">Rafael Amichis Luengo (RAL)</div>
 </footer>
 
@@ -1535,9 +1546,8 @@ function diagnose(V, d, n) {
     { name: 'Gram-tri (reverse)',     value: muTri   },
     { name: 'Double-double (TP+TS)',  value: muDD    }
   ];
-  const mu = muDD;  // use highest-precision kernel as the consensus value
 
-  // ─ All pair coherences (using naive kernel for downstream consistency) ─
+  // ─ All pair coherences (single kernel — used for downstream gap/cliff/saturation consistency) ─
   const nPairs = n * (n-1) / 2;
   const absInner = new Float64Array(nPairs);
   const pairIdx = new Array(nPairs);
@@ -1550,6 +1560,10 @@ function diagnose(V, d, n) {
       idx++;
     }
   }
+  // Use max of absInner for downstream consistency (cliff/saturation use the same kernel as the gap source).
+  // The five-kernel cross-check above is for reporting agreement at high precision; downstream invariants
+  // must come from a single kernel to be self-consistent at ULP level.
+  const mu = Math.max(...absInner);
 
   // ─ Welch ─
   const welch = Math.sqrt((n - d) / (d * (n - 1)));
@@ -1864,10 +1878,12 @@ function render(r) {
       <table>
         <thead><tr><th>pair</th><th>|⟨vᵢ, vⱼ⟩|</th><th>vs μ</th></tr></thead>
         <tbody>${r.worstPairs.map(p => `
-          <tr><td>(v${p.i}, v${p.j})</td><td>${p.coh.toFixed(8)}</td><td>${(p.coh/r.mu*100).toFixed(2)}%</td></tr>
+          <tr><td>(v${p.i}, v${p.j})</td><td>${p.coh.toFixed(12)}</td><td>${(p.coh/r.mu*100).toFixed(4)}%</td></tr>
         `).join('')}</tbody>
       </table>
     `;
+    const nInternalPairs = r.d * (r.d - 1) / 2;
+    document.getElementById('internal-pairs-note').innerHTML = `${nInternalPairs} pairs from ${r.d} vectors = C(${r.d}, 2) = ${r.d}·(${r.d}−1)/2. Internal pairs count grows quadratically with d: d=2→1, d=3→3, d=4→6, d=5→10, d=7→21.`;
     let coupleInterp = '';
     if (r.coupleRatio < 1.15) coupleInterp = 'uniform — all pairs within T at comparable coherence';
     else if (r.coupleRatio < 1.5) coupleInterp = 'moderate dominance — leading pair plus weaker companions';
@@ -1880,6 +1896,7 @@ function render(r) {
     document.getElementById('worst-tuple-display').innerHTML = `<em style="color: var(--ink-faint);">C(n, d) = ${r.cnk.toLocaleString()} exceeds the 700k subset limit — worst d-tuple skipped.</em>`;
     document.getElementById('worst-det').textContent = '';
     document.getElementById('worst-pairs').innerHTML = '';
+    document.getElementById('internal-pairs-note').innerHTML = '';
     document.getElementById('couple-ratio').innerHTML = '';
   }
 
@@ -1892,7 +1909,16 @@ function render(r) {
   document.getElementById('tightness-gap').innerHTML = `
     <span class="mono">${r.tightnessGap.toExponential(4)}</span> · <strong>${tightnessClass}</strong>
   `;
-  document.getElementById('norm-range').textContent = `[${r.normMin.toFixed(14)}, ${r.normMax.toFixed(14)}]`;
+  const normDev = Math.max(Math.abs(1 - r.normMin), Math.abs(r.normMax - 1));
+  let normHTML = `[${r.normMin.toFixed(14)}, ${r.normMax.toFixed(14)}]`;
+  if (normDev > 1e-10) {
+    normHTML += ` <span style="color: var(--warn); font-family: 'Fraunces', serif; font-style: italic; font-size: 12px;">⚠ deviation ${normDev.toExponential(2)} from unit — vectors not byte-exact unit-norm (acceptable for GoS but flagged)</span>`;
+  } else if (normDev > 1e-14) {
+    normHTML += ` <span style="color: var(--ink-soft); font-family: 'Fraunces', serif; font-style: italic; font-size: 12px;">✓ within ${normDev.toExponential(2)} of unit</span>`;
+  } else {
+    normHTML += ` <span style="color: var(--good); font-family: 'Fraunces', serif; font-style: italic; font-size: 12px;">✓ exact unit-norm at machine precision</span>`;
+  }
+  document.getElementById('norm-range').innerHTML = normHTML;
   document.getElementById('field-type').innerHTML = r.isRealFrame
     ? `<strong style="color: var(--accent);">REAL frame</strong> — all Im(v) below 10⁻¹². max |Im(v)| = ${r.maxImag.toExponential(2)}.`
     : `<strong>Complex frame</strong> — max |Im(v)| = ${r.maxImag.toExponential(3)}.`;
@@ -1993,26 +2019,39 @@ function renderBarometer(r) {
   const lb = r._activeBound ? r._activeBound[1] : r.welch;
   const lbLabel = r._activeBound ? r._activeBound[0] : 'Welch–Rankin';
 
+  // Avoid label collision: if Welch and μ are within 8% horizontal distance, stagger vertically
+  const welchPct = xPct(r.welch);
+  const muPct = xPct(r.mu);
+  const lbPct = xPct(lb);
+  const close = Math.abs(muPct - welchPct) < 8;
+  const welchTopOffset = close ? '-22px' : '-22px';
+  const welchBotOffset = close ? '-22px' : '-22px';
+  const muTopOffset = close ? '-38px' : '-22px';
+  const muBotOffset = close ? '-38px' : '-22px';
+
   let markers = `
-    <div class="barometer-marker welch" style="left: ${xPct(r.welch)}%"></div>
-    <div class="barometer-label welch" style="left: ${xPct(r.welch)}%">Welch</div>
-    <div class="barometer-value" style="left: ${xPct(r.welch)}%">${r.welch.toFixed(4)}</div>
+    <div class="barometer-marker welch" style="left: ${welchPct}%"></div>
+    <div class="barometer-label welch" style="left: ${welchPct}%; top: ${welchTopOffset};">Welch</div>
+    <div class="barometer-value" style="left: ${welchPct}%; bottom: ${welchBotOffset};">${r.welch.toFixed(4)}</div>
   `;
   if (lbLabel !== 'Welch–Rankin') {
+    // Active bound goes between Welch and μ. If too close to either, push further.
+    const lbStaggerTop = (Math.abs(lbPct - welchPct) < 8 || Math.abs(lbPct - muPct) < 8) ? '-54px' : '-38px';
+    const lbStaggerBot = (Math.abs(lbPct - welchPct) < 8 || Math.abs(lbPct - muPct) < 8) ? '-54px' : '-38px';
     markers += `
-      <div class="barometer-marker lb" style="left: ${xPct(lb)}%"></div>
-      <div class="barometer-label lb" style="left: ${xPct(lb)}%; top: -38px;">${lbLabel}</div>
-      <div class="barometer-value" style="left: ${xPct(lb)}%; bottom: -38px;">${lb.toFixed(4)}</div>
+      <div class="barometer-marker lb" style="left: ${lbPct}%"></div>
+      <div class="barometer-label lb" style="left: ${lbPct}%; top: ${lbStaggerTop};">${lbLabel}</div>
+      <div class="barometer-value" style="left: ${lbPct}%; bottom: ${lbStaggerBot};">${lb.toFixed(4)}</div>
     `;
   }
   markers += `
-    <div class="barometer-marker yours" style="left: ${xPct(r.mu)}%"></div>
-    <div class="barometer-label yours" style="left: ${xPct(r.mu)}%; top: -38px;">YOUR μ</div>
-    <div class="barometer-value" style="left: ${xPct(r.mu)}%; bottom: -38px;">${r.mu.toFixed(6)}</div>
+    <div class="barometer-marker yours" style="left: ${muPct}%"></div>
+    <div class="barometer-label yours" style="left: ${muPct}%; top: ${muTopOffset};">YOUR μ</div>
+    <div class="barometer-value" style="left: ${muPct}%; bottom: ${muBotOffset};">${r.mu.toFixed(6)}</div>
   `;
 
   document.getElementById('barometer-content').innerHTML = `
-    <div class="barometer-wrap">
+    <div class="barometer-wrap" style="padding-top: ${close ? '46px' : '24px'}; padding-bottom: ${close ? '46px' : '20px'};">
       <div class="barometer">${markers}</div>
     </div>
     <div style="font-family: 'Fraunces', serif; font-size: 13px; color: var(--ink-soft); margin-top: 32px;">
@@ -2068,10 +2107,11 @@ async function tryHolderCompare(r) {
     // Compare metrics
     const mu_delta = r.mu - h.mu;
     let status, label;
+    const deltaStr = Math.abs(mu_delta).toExponential(2);
     if (isSelf) { status = 'ties'; label = '◇ IDENTICAL — you uploaded the current holder packing'; }
-    else if (mu_delta < -5e-9) { status = 'beats'; label = '🟢 BEATS HOLDER'; }
-    else if (mu_delta > 5e-9) { status = 'worse'; label = '🔴 WORSE THAN HOLDER'; }
-    else { status = 'ties'; label = '🟡 TIES HOLDER (within 5e-9)'; }
+    else if (mu_delta < -5e-9) { status = 'beats'; label = `🟢 BEATS holder (${cell.holder}) by ${deltaStr}`; }
+    else if (mu_delta > 5e-9) { status = 'worse'; label = `🔴 WORSE than holder (${cell.holder}) by ${deltaStr}`; }
+    else { status = 'ties'; label = `🟡 TIES holder (${cell.holder}) within 5e-9`; }
 
     content.innerHTML = `
       <div class="compare-status ${status}">${label}</div>
@@ -2157,7 +2197,7 @@ function resetAll() {
 function shareTool() {
   const url = window.location.href;
   if (navigator.share) {
-    navigator.share({ title: 'KADE Packing Diagnostic v3', url }).catch(() => {});
+    navigator.share({ title: 'KADE Packing Diagnostic v5', url }).catch(() => {});
   } else if (navigator.clipboard) {
     navigator.clipboard.writeText(url).then(
       () => setStatus('URL copied to clipboard', 'ok'),
@@ -2170,7 +2210,7 @@ function exportReport() {
   if (!lastResult) { setStatus('No analysis to export yet. Click Analyze first.', 'error'); return; }
   const r = lastResult;
   const report = {
-    tool: 'KADE Packing Diagnostic v3',
+    tool: 'KADE Packing Diagnostic v5',
     timestamp: new Date().toISOString(),
     packing_sha256: r._hash,
     d: r.d, n: r.n, nPairs: r.nPairs,
@@ -2208,6 +2248,164 @@ function exportReport() {
   setStatus(`JSON report exported · ${a.download}`, 'ok');
 }
 
+// ════════════════════════════════════════════════════════════
+// COPY / SHARE PLAIN-TEXT RESULTS
+// ════════════════════════════════════════════════════════════
+function buildResultsText() {
+  if (!lastResult) return null;
+  const r = lastResult;
+  const lines = [];
+  lines.push(`KADE Packing Diagnostic — Results`);
+  lines.push(`https://tretoef-estrella.github.io/KADE/`);
+  lines.push(`Date: ${new Date().toISOString()}`);
+  lines.push(`Packing SHA-256: ${r._hash}`);
+  lines.push(``);
+  lines.push(`Cell: d = ${r.d}, n = ${r.n}  (${r.nPairs} pairs, C(n,d) = ${r.cnk.toLocaleString()})`);
+  lines.push(`Verdict: ${r.verdict_cls}`);
+  lines.push(``);
+  lines.push(`─── CORE METRICS ───`);
+  lines.push(`  μ (coherence)       = ${r.mu.toFixed(16)}`);
+  lines.push(`  μ / Welch           = ${r.muOverWelch.toFixed(6)}`);
+  lines.push(`  Welch bound         = ${r.welch.toFixed(10)}`);
+  lines.push(`  saturated %         = ${r.satFrac.toFixed(2)}%  (${r.nSat} of ${r.nPairs} pairs)`);
+  lines.push(`  cliff D₁            = ${r.cliff !== null ? r.cliff.toExponential(4) : 'N/A'}`);
+  lines.push(`  kade base           = ${r.kadeBase !== null ? r.kadeBase.toExponential(4) : 'N/A'}`);
+  lines.push(`  kade norm           = ${r.kadeNorm !== null ? r.kadeNorm.toExponential(4) : 'N/A'}`);
+  lines.push(`  tightness gap       = ${r.tightnessGap.toExponential(4)}`);
+  lines.push(``);
+  lines.push(`─── FIVE-KERNEL μ VERIFICATION ───`);
+  for (const k of r.kernels) {
+    lines.push(`  ${k.name.padEnd(24)} ${k.value.toFixed(16)}`);
+  }
+  const spread = Math.max(...r.kernels.map(k => k.value)) - Math.min(...r.kernels.map(k => k.value));
+  lines.push(`  max disagreement    = ${spread.toExponential(3)}  ${spread < 1e-12 ? '(kernels agree at 12+ decimals)' : '(quad-precision verification recommended)'}`);
+  lines.push(``);
+  if (r.worstT) {
+    lines.push(`─── WORST d-TUPLE ───`);
+    lines.push(`  vertices            = (${r.worstT.map(v => 'v' + v).join(', ')})`);
+    lines.push(`  |det Gᵀ|            = ${r.kadeBase.toExponential(6)}`);
+    lines.push(`  spectral λ_max/λ_min = ${r.kadeSpectralRatio.toExponential(3)}`);
+    lines.push(`  couple ratio        = ${r.coupleRatio.toFixed(4)}  (max/median internal pair)`);
+    lines.push(`  internal pairs:`);
+    for (const p of r.worstPairs) {
+      lines.push(`    (v${p.i}, v${p.j})  |⟨·,·⟩| = ${p.coh.toFixed(12)}  (${(p.coh/r.mu*100).toFixed(4)}% of μ)`);
+    }
+    lines.push(``);
+  }
+  lines.push(`─── FRAME STATISTICS ───`);
+  lines.push(`  frame eigenvalues   = [${r.frameEigs.map(e => e.toFixed(6)).join(', ')}]`);
+  lines.push(`  expected (if tight) = ${(r.n/r.d).toFixed(4)}`);
+  lines.push(`  field type          = ${r.isRealFrame ? 'REAL (max |Im(v)| < 1e-12)' : 'COMPLEX'}`);
+  lines.push(`  unit-norm range     = [${r.normMin.toFixed(14)}, ${r.normMax.toFixed(14)}]`);
+  lines.push(``);
+  lines.push(`─── BARGMANN PHASE TEST ───`);
+  if (r.bargmann.k3Count === 0) {
+    lines.push(`  no K₃ cliques — test not applicable`);
+  } else {
+    lines.push(`  K₃ cliques          = ${r.bargmann.k3Count}`);
+    lines.push(`  distinct phases     = ${r.bargmann.distinctPhases}`);
+    lines.push(`  verdict             = ${r.bargmann.isDiscrete ? 'DISCRETE (algebraic-type structure)' : 'CONTINUOUS (numerically optimised)'}`);
+  }
+  lines.push(``);
+  lines.push(`─── REFERENCE LOWER BOUNDS ───`);
+  const orthoValid = r.n > r.d * r.d;
+  const ortho = orthoValid ? 1/Math.sqrt(r.d) : null;
+  const lev2Valid = r.n > r.d*(r.d+1)/2;
+  const lev2 = lev2Valid ? Math.sqrt((2*r.n - r.d*r.d - r.d) / ((r.n-1)*(r.d+2))) : null;
+  lines.push(`  Welch–Rankin        = ${r.welch.toFixed(8)}  (μ/W = ${r.muOverWelch.toFixed(4)})  always valid`);
+  if (orthoValid) lines.push(`  Orthoplex           = ${ortho.toFixed(8)}  (μ/O = ${(r.mu/ortho).toFixed(4)})  valid (n > d²)`);
+  else            lines.push(`  Orthoplex           = N/A  (n=${r.n} ≤ d²=${r.d*r.d})`);
+  if (lev2Valid)  lines.push(`  Levenstein-2        = ${lev2.toFixed(8)}  (μ/L = ${(r.mu/lev2).toFixed(4)})  valid (n > d(d+1)/2)`);
+  else            lines.push(`  Levenstein-2        = N/A  (n=${r.n} ≤ d(d+1)/2=${r.d*(r.d+1)/2})`);
+  if (r._activeBound) {
+    lines.push(`  → active bound      = ${r._activeBound[0]} at ${r._activeBound[1].toFixed(8)}`);
+  }
+  lines.push(``);
+  if (r.warnings.length || r.isRealFrame) {
+    lines.push(`─── WARNINGS ───`);
+    if (r.isRealFrame) lines.push(`  ⚠ Real-only frame: max |Im(v)| = ${r.maxImag.toExponential(2)}`);
+    for (const w of r.warnings) lines.push(`  ⚠ ${w}`);
+    lines.push(``);
+  }
+  lines.push(`─── DISCLAIMER ───`);
+  lines.push(`  Float64 only. Does NOT guarantee 8th-decimal byte-exact for`);
+  lines.push(`  Game of Sloanes record submissions. Quad-precision verification`);
+  lines.push(`  (gcc __float128 or Python mpmath ≥ 30 digits) is required.`);
+  lines.push(``);
+  lines.push(`Tool: KADE Packing Diagnostic v5 · https://tretoef-estrella.github.io/KADE/`);
+  return lines.join('\n');
+}
+
+function copyResults() {
+  if (!lastResult) { setStatus('No analysis to copy yet. Click Analyze first.', 'error'); return; }
+  const text = buildResultsText();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(
+      () => setStatus(`Results copied to clipboard · ${text.length.toLocaleString()} chars · paste anywhere`, 'ok'),
+      () => setStatus('Clipboard copy failed. Try the Share button instead.', 'error')
+    );
+  } else {
+    // Fallback: open in a new window for manual copy
+    const w = window.open('', '_blank');
+    w.document.write(`<pre style="font-family: monospace; white-space: pre-wrap; padding: 20px;">${text.replace(/</g, '&lt;')}</pre>`);
+    setStatus('Clipboard API not available — results opened in new tab for manual copy.', 'ok');
+  }
+}
+
+function shareResults() {
+  if (!lastResult) { setStatus('No analysis to share yet. Click Analyze first.', 'error'); return; }
+  const r = lastResult;
+  const text = buildResultsText();
+  // Short headline for share targets that don't render long text well
+  const headline = `KADE diagnostic · cell (${r.d}, ${r.n}) · μ = ${r.mu.toFixed(10)} · class: ${r.verdict_cls}`;
+
+  // Try Web Share API first (mobile, supports WhatsApp, Mail, Telegram, etc.)
+  if (navigator.share) {
+    navigator.share({
+      title: 'KADE Packing Diagnostic',
+      text: text,
+      url: 'https://tretoef-estrella.github.io/KADE/'
+    }).then(
+      () => setStatus('Share dialog opened. Choose your app.', 'ok'),
+      (e) => {
+        if (e.name !== 'AbortError') setStatus('Share dialog closed.', 'ok');
+      }
+    );
+    return;
+  }
+
+  // Desktop fallback: show small chooser overlay
+  const existing = document.getElementById('share-overlay');
+  if (existing) existing.remove();
+  const enc = encodeURIComponent(text);
+  const subj = encodeURIComponent(headline);
+  const overlay = document.createElement('div');
+  overlay.id = 'share-overlay';
+  overlay.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(26,22,18,0.6); z-index:9999; display:flex; align-items:center; justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background: var(--paper); border: 2px solid var(--ink); padding: 24px 28px; max-width: 460px; font-family: 'Fraunces', serif;">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.20em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px;">Share results</div>
+      <div style="font-size: 14px; color: var(--ink-soft); margin-bottom: 18px;">
+        Pick a channel. Results are ${text.length.toLocaleString()} characters — some apps may truncate.
+      </div>
+      <div style="display: grid; gap: 8px;">
+        <a href="https://wa.me/?text=${enc}" target="_blank" rel="noopener" class="btn" style="display:block; text-align:center; text-decoration:none; padding: 10px;">📱 WhatsApp</a>
+        <a href="mailto:?subject=${subj}&body=${enc}" class="btn" style="display:block; text-align:center; text-decoration:none; padding: 10px;">✉ Email</a>
+        <a href="https://t.me/share/url?url=${encodeURIComponent('https://tretoef-estrella.github.io/KADE/')}&text=${enc}" target="_blank" rel="noopener" class="btn" style="display:block; text-align:center; text-decoration:none; padding: 10px;">✈ Telegram</a>
+        <button class="btn" onclick="copyResults(); document.getElementById('share-overlay').remove();" style="padding: 10px;">📋 Copy to clipboard</button>
+      </div>
+      <div style="margin-top: 18px; text-align: right;">
+        <button class="btn" onclick="document.getElementById('share-overlay').remove();">Close</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+  setStatus('Share menu opened.', 'ok');
+}
+
 // ─── File upload with filename auto-detect (d, n) ───
 document.getElementById('file-input').addEventListener('change', (e) => {
   const file = e.target.files[0];
@@ -2226,6 +2424,44 @@ document.getElementById('file-input').addEventListener('change', (e) => {
   reader.onerror = () => setStatus('File read error.', 'error');
   reader.readAsText(file);
 });
+
+// ─── Paste from clipboard (one-click UX) ───
+async function pasteFromClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    setStatus('Clipboard read not available in this browser. Use Ctrl+V (Cmd+V) inside the textarea instead.', 'error');
+    return;
+  }
+  try {
+    setStatus('Reading clipboard…');
+    const text = await navigator.clipboard.readText();
+    if (!text || !text.trim()) {
+      setStatus('Clipboard is empty. Copy a packing first, then click Paste from clipboard.', 'error');
+      return;
+    }
+    document.getElementById('packing-input').value = text;
+    // Try to auto-detect (d, n) from float count if it parses cleanly
+    const floats = text.trim().split(/\s+/).map(Number).filter(x => !isNaN(x));
+    let dnInfo = '';
+    if (floats.length > 0 && floats.length % 2 === 0) {
+      const half = floats.length / 2;
+      const candidates = [];
+      for (let dt = 2; dt <= 30; dt++) {
+        if (half % dt === 0) {
+          const nt = half / dt;
+          if (nt > dt && nt <= 400) candidates.push([dt, nt]);
+        }
+      }
+      if (candidates.length === 1) {
+        document.getElementById('d-input').value = candidates[0][0];
+        document.getElementById('n-input').value = candidates[0][1];
+        dnInfo = ` · auto-detected d=${candidates[0][0]}, n=${candidates[0][1]}`;
+      }
+    }
+    setStatus(`Pasted ${floats.length} floats from clipboard${dnInfo}. Click Analyze →`, 'ok');
+  } catch (e) {
+    setStatus('Clipboard read failed (browser may need permission). Use Ctrl+V (Cmd+V) inside the textarea instead.', 'error');
+  }
+}
 
 // ─── Load from URL ───
 async function loadFromURL() {
