@@ -67,7 +67,12 @@ when float64 is comfortable and when it is not.
 
 The tool does not replace mathematical reasoning, quad-precision
 verification, or peer review. It is one diagnostic instrument among
-others.
+others. It emerged from empirical work on sub-catalog packings documented
+in the companion repository
+[sloane-coherence-records](https://github.com/tretoef-estrella/sloane-coherence-records),
+where the same structural fingerprint conventions are applied to record
+packings in cells (4, 64), (4, 48), and (3, 14) — readers interested in
+worked examples will find the fingerprint of every record there.
 
 ---
 
@@ -138,7 +143,9 @@ Rafael Amichis Luengo (RAL), Madrid — `tretoef@gmail.com`
 
 Independent investigator. The diagnostic framework was developed in
 iterative collaboration with Claude (Anthropic) during empirical
-cross-cell investigations of Grassmannian frame packings.
+cross-cell investigations of Grassmannian frame packings. The records
+those investigations produced are documented in the companion repository
+[sloane-coherence-records](https://github.com/tretoef-estrella/sloane-coherence-records).
 
 ---
 
