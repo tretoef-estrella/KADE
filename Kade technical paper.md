@@ -1,4 +1,3 @@
-
 # KADE Technical Paper
 
 ## Cross-Cell Structural Diagnostics for Grassmannian Line Packings: Beyond the Worst Pair
@@ -139,10 +138,11 @@ The toolkit was applied to the seven Game of Sloanes cells listed in Table 1. Th
 
 Table 2 reports the toolkit invariants for the four primary cells of the study. The remaining three cells are summarised in §3.4.
 
-**Table 2. Cross-cell diagnostic fingerprint (four primary cells).** Columns labelled with the proposed sub-catalog packings under PR review for (3, 14), (4, 48), and (4, 64); column (3, 15) is the Jasper–Joseph structurally constructed reference.
+**Table 2. Cross-cell diagnostic fingerprint (four primary cells).** The Holder row lists the standing leaderboard holder for each cell at the time of writing; column (3, 15) is the Jasper–Joseph structurally constructed reference. The numerical invariants below are computed on the proposed candidate packings under PR review for (3, 14), (4, 48), and (4, 64), and on the standing JJ packing for (3, 15).
 
-| Quantity                                | (3, 14) candidate    | (3, 15) JJ            | (4, 48) candidate   | (4, 64) candidate     |
+| Quantity                                | (3, 14)              | (3, 15)                | (4, 48)             | (4, 64)               |
 |-----------------------------------------|----------------------|------------------------|---------------------|------------------------|
+| Holder                                  | Mixon 2019 (dgm)     | Jasper–Joseph (JJ)     | Cohn (hlc)          | Cohn (hlc)             |
 | µ                                       | 0.637630514941       | 0.640388203202         | 0.643425504760      | 0.687033931214         |
 | µ / Welch                               | 1.2006               | 1.1981                 | 1.3300              | 1.4080                 |
 | Saturated fraction at 10⁻⁸              | 53.85%               | 62.86%                 | 24.29%              | 17.16%                 |
@@ -158,6 +158,8 @@ Table 2 reports the toolkit invariants for the four primary cells of the study. 
 | Regime D (pure geometric, 0 sat edges)  | 1                    | 0                      | 14                  | 17                     |
 | Hinge rule, top-1 hub                   | 100%                 | 40%                    | 50%                 | 29%                    |
 | Hub overrepresentation (top-1 freq)     | 1.67×                | 1.67×                  | 3.33×               | 2.33×                  |
+
+<sub>**Note (as of 2026-05-20).** The pull requests proposing improved-coherence candidate packings for cells (3, 14), (4, 48), and (4, 64) have been submitted to the Game of Sloanes leaderboard at github.com/gnikylime/GameofSloanes but have not yet been merged. The current holders on the leaderboard remain Mixon 2019 (dgm) for cell (3, 14) and Cohn (hlc) for cells (4, 48) and (4, 64). The diagnostic fingerprint above is computed on the proposed candidate packings, since they sit at or near the local numerical limit and therefore offer the cleanest test of the toolkit's discrimination power; the toolkit produces a parallel fingerprint on the standing holders, available in the companion repository.</sub>
 
 ### 3.3 Three structural classes
 
